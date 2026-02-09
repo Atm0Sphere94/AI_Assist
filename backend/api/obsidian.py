@@ -13,7 +13,7 @@ from db.cloud_storage_models import (
     CloudStorageType,
     CloudSyncJob
 )
-from tasks.cloud_sync_tasks import sync_obsidian_vault
+from tasks import cloud_sync_tasks
 
 router = APIRouter(prefix="/api/obsidian", tags=["obsidian"])
 
@@ -93,7 +93,7 @@ async def connect_obsidian_vault(
         credentials_encrypted=vault_data.icloud_app_password,  # TODO: Encrypt
         sync_path=vault_data.vault_path,
         sync_enabled=vault_data.sync_enabled,
-        metadata={"icloud_username": vault_data.icloud_username}
+        meta_data={"icloud_username": vault_data.icloud_username}
     )
     
     db.add(cloud_storage)
@@ -180,7 +180,7 @@ async def trigger_vault_sync(
     await db.refresh(job)
     
     # Trigger background task
-    task = sync_obsidian_vault.delay(vault_id, job.id)
+    task = cloud_sync_tasks.sync_obsidian_vault.delay(vault_id, job.id)
     job.celery_task_id = task.id
     await db.commit()
     
@@ -226,14 +226,14 @@ async def list_vault_notes(
     
     notes = []
     for doc in documents:
-        metadata = doc.metadata or {}
+        meta_data = doc.meta_data or {}
         notes.append(ObsidianNoteResponse(
             path=doc.file_path,
             name=doc.original_filename,
             size=doc.file_size or 0,
-            tags=metadata.get('tags', []),
-            links=metadata.get('links', []),
-            backlinks=metadata.get('backlinks', [])
+            tags=meta_data.get('tags', []),
+            links=meta_data.get('links', []),
+            backlinks=meta_data.get('backlinks', [])
         ))
     
     return notes
@@ -334,17 +334,17 @@ async def get_vault_graph(
     edges = []
     
     for doc in documents:
-        metadata = doc.metadata or {}
+        meta_data = doc.meta_data or {}
         
         # Add node
         nodes.append({
             "id": doc.id,
             "label": doc.original_filename.replace('.md', ''),
-            "tags": metadata.get('tags', [])
+            "tags": meta_data.get('tags', [])
         })
         
         # Add edges for links
-        for link in metadata.get('links', []):
+        for link in meta_data.get('links', []):
             # Find target document by name
             target = next(
                 (d for d in documents if d.original_filename.replace('.md', '') == link),
