@@ -1,97 +1,81 @@
-# AI Jarvis - Telegram AI RAG Assistant
+# AI Jarvis - Your Personal AI Assistant
 
-Полноценный AI-ассистент для Telegram с agentic workflow, управлением задачами, календарём, напоминаниями, генерацией изображений и базой знаний.
+<div align="center">
 
-## Возможности
+**Powerful AI assistant with Telegram bot, modern web interface, and cloud storage integration**
 
-- 🤖 **Интеллектуальная маршрутизация** через LangGraph
-- 📝 **Управление задачами** и списками дел
-- 📅 **Календарь** и события
-- ⏰ **Напоминания** с уведомлениями
-- 🖼️ **Генерация изображений** (DALL-E 3)
-- 📚 **База знаний** с RAG
-- 📄 **Обработка документов** (PDF, DOCX, TXT)
-- 🌐 **Веб-интерфейс** для управления
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 
-## Технологии
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](#-architecture)
 
-**Backend:**
-- Python 3.11+
-- FastAPI
-- aiogram 3
-- LangGraph + LangChain
-- PostgreSQL + pgvector
-- Redis
-- Qdrant
-- Celery
+</div>
 
-**Frontend** (в разработке):
-- Next.js 14
-- TypeScript
-- TailwindCSS
+---
 
-## Быстрый старт
+## ✨ Features
 
-### 1. Клонировать репозиторий
+### 🤖 Dual Interface
+- **Telegram Bot** - Communicate with AI via Telegram messenger
+- **Web Interface** - Modern Next.js 14 app with real-time chat
+- **Telegram Auth** - Secure authentication through Telegram Login Widget
+
+### 🧠 AI Capabilities
+- **Multiple AI Models**:
+  - OpenAI GPT-4 (cloud-based)
+  - Ollama (local, uncensored models: Dolphin Mixtral, WizardLM, OpenHermes)
+- **Agentic Workflow** - LangGraph-based intelligent message routing
+- **RAG (Knowledge Base)** - Vector search with PostgreSQL pgvector + Qdrant
+- **Image Generation** - DALL-E 3 integration
+
+### ☁️ Cloud Storage Integration
+- **Yandex Disk** - Automatic document sync and indexing
+- **iCloud Drive** - Obsidian vault synchronization via WebDAV
+- **Background Processing** - Celery-powered non-blocking sync
+- **15+ API Endpoints** - Full REST API for storage management
+
+### 📋 Task Management
+- Tasks, Calendar Events, Reminders
+- Document upload and processing
+- Knowledge base search
+- Admin panel for user management
+
+### 🎨 Modern UI/UX
+- Dark theme with glassmorphism effects
+- Fully responsive (mobile + desktop)
+- Real-time chat with Markdown rendering
+- Beautiful icons (Lucide React)
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+ (for frontend)
+- Telegram Bot Token ([get from @BotFather](https://t.me/BotFather))
+- OpenAI API Key (optional if using Ollama)
+- Your Telegram ID ([get from @userinfobot](https://t.me/userinfobot))
+
+### Installation
 
 ```bash
-git clone <your-repo>
-cd AI_Jarvis
-```
+# 1. Clone repository
+git clone https://github.com/Atm0Sphere94/AI_Assist.git
+cd AI_Assist
 
-### 2. Настроить переменные окружения
+# 2. Run interactive setup
+chmod +x setup.sh
+./setup.sh
 
-```bash
-cp .env.example .env
-# Отредактируйте .env файл и добавьте ваши API ключи
-```
+# 3. Install frontend dependencies
+cd frontend
+npm install
+cd ..
 
-### 3. Запустить с Docker Compose
-
-```bash
+# 4. Start all services
 docker-compose up -d
-```
-
-### 4. Проверить работу
-
-```bash
-curl http://localhost:8000/health
-```
-
-## Разработка
-
-### Локальная разработка без Docker
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # или venv\Scripts\activate на Windows
-pip install -r requirements.txt
-
-# Запустить PostgreSQL, Redis, Qdrant локально или через Docker
-
-# Запустить backend
-uvicorn main:app --reload
-
-# В другом терминале запустить Celery worker
-celery -A celery_app worker --loglevel=info
-
-# В третьем терминале запустить Celery beat
-celery -A celery_app beat --loglevel=info
-```
-
-## Структура проекта
-
-```
-AI_Jarvis/
-├── backend/
-│   ├── agents/          # LangGraph агенты
-│   ├── api/             # FastAPI endpoints
-│   ├── db/              # База данных
-│   ├── services/        # Бизнес-логика
-│   ├── telegram/        # Telegram bot
-│   ├── utils/           # Утилиты
-│   ├── main.py          # FastAPI приложение
 │   └── config.py        # Конфигурация
 ├── frontend/            # Next.js приложение
 ├── data/                # Данные (uploads, векторная БД)
