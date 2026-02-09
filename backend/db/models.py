@@ -13,18 +13,24 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, nullable=False, index=True)
-    username = Column(String(255), nullable=True)
-    first_name = Column(String(255), nullable=True)
-    last_name = Column(String(255), nullable=True)
-    language_code = Column(String(10), default="en")
-    is_active = Column(Boolean, default=True)
-    is_admin = Column(Boolean, default=False)  # Admin user flag
+    # Telegram info
+    telegram_id = Column(BigInteger, unique=True, index=True)
+    username = Column(String, nullable=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    language_code = Column(String, default="en")
     
-    # Activity tracking
-    last_active_at = Column(Integer, nullable=True)  # Unix timestamp
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Admin credentials (for web login)
+    admin_username = Column(String, unique=True, nullable=True, index=True)
+    admin_password_hash = Column(String, nullable=True)
+    
+    # User role
+    is_admin = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")

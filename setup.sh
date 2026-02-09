@@ -236,7 +236,38 @@ main() {
         print_success "Webhook URL saved"
     fi
 
-    print_step "Step 3: Frontend Configuration"
+    # Admin credentials
+    print_step "Step 3: Admin Account Setup"
+    
+    print_info "Create admin account for web interface login"
+    echo ""
+    
+    while true; do
+        read -p "Enter admin username: " ADMIN_USERNAME
+        if [ ! -z "$ADMIN_USERNAME" ]; then
+            break
+        fi
+        print_error "Username cannot be empty!"
+    done
+    
+    while true; do
+        read -sp "Enter admin password: " ADMIN_PASSWORD
+        echo ""
+        if [ ${#ADMIN_PASSWORD} -lt 8 ]; then
+            print_error "Password must be at least 8 characters!"
+            continue
+        fi
+        read -sp "Confirm admin password: " ADMIN_PASSWORD_CONFIRM
+        echo ""
+        if [ "$ADMIN_PASSWORD" == "$ADMIN_PASSWORD_CONFIRM" ]; then
+            break
+        fi
+        print_error "Passwords don't match!"
+    done
+    
+    print_success "Admin credentials configured"
+    
+    print_step "Step 4: Frontend Configuration"
 
     if [ -d "frontend" ]; then
         # Frontend .env.local
@@ -277,20 +308,26 @@ EOF
     print_info "Waiting for services to be ready..."
     sleep 10
 
-    print_step "Step 5: Database Initialization"
+    print_step "Step 6: Database Initialization"
 
     print_info "Initializing database..."
     docker-compose exec -T backend python init_db.py > /dev/null 2>&1
     print_success "Database initialized"
 
-    print_step "Step 6: Create Admin User"
+    print_step "Step 7: Creating Admin User"
 
-    print_info "To create an admin user, you need to:"
-    print_info "1. Login via Telegram bot or web interface first"
-    print_info "2. Then run: docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID"
-    echo ""
-    print_warning "After first login, create admin with:"
-    echo -e "${YELLOW}    docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID${NC}"
+    print_info "Creating admin user with provided credentials..."
+    docker-compose exec -T backend python create_admin_user.py "$ADMIN_USERNAME" "$ADMIN_PASSWORD" $ADMIN_TELEGRAM_ID > /dev/null 2>&1
+    
+    if [ $? -eq 0 ]; then
+        print_success "Admin user created successfully!"
+        echo ""
+        print_info "Admin credentials:"
+        echo -e "  Username: ${YELLOW}$ADMIN_USERNAME${NC}"
+        echo -e "  Password: ${YELLOW}********${NC}"
+    else
+        print_warning "Admin user creation skipped (may already exist)"
+    fi
 
     print_step "✨ Setup Complete! ✨"
 
@@ -311,9 +348,10 @@ EOF
 
     echo -e "${CYAN}Next Steps:${NC}"
     echo -e "  1. ${ARROW} Visit ${BLUE}http://localhost:3000${NC}"
-    echo -e "  2. ${ARROW} Login with Telegram"
-    echo -e "  3. ${ARROW} Create admin: ${YELLOW}docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID${NC}"
-    echo -e "  4. ${ARROW} Start chatting with your AI assistant!"
+    echo -e "  2. ${ARROW} Login with:"
+    echo -e "      • Telegram (via widget)"
+    echo -e "      • Admin login: ${YELLOW}$ADMIN_USERNAME${NC} / ${YELLOW}********${NC}"
+    echo -e "  3. ${ARROW} Start chatting with your AI assistant!"
     echo ""
 
     echo -e "${CYAN}Useful Commands:${NC}"
