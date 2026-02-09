@@ -308,8 +308,8 @@ prompt_secure_input() {
     local prompt=$1
     local var_name=$2
     
-    read -sp "$prompt: " input
-    echo
+    # Используем обычный read чтобы видеть вводимые символы
+    read -p "$prompt: " input
     eval "$var_name=\$input"
 }
 

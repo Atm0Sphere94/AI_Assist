@@ -51,6 +51,17 @@ if [ "$PKG_MANAGER" == "apt" ]; then
         openssl \
         jq \
         make
+    
+    # Установка Node.js
+    log_info "Устанавливаем Node.js..."
+    if ! command -v node &> /dev/null; then
+        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+        apt-get install -y -qq nodejs
+        log_success "Node.js $(node --version) установлен"
+    else
+        log_success "Node.js уже установлен: $(node --version)"
+    fi
+    
 elif [ "$PKG_MANAGER" == "yum" ]; then
     yum update -y -q
     yum install -y -q \
@@ -61,6 +72,16 @@ elif [ "$PKG_MANAGER" == "yum" ]; then
         openssl \
         jq \
         make
+    
+    # Установка Node.js
+    log_info "Устанавливаем Node.js..."
+    if ! command -v node &> /dev/null; then
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+        yum install -y -q nodejs
+        log_success "Node.js $(node --version) установлен"
+    else
+        log_success "Node.js уже установлен: $(node --version)"
+    fi
 fi
 
 log_success "Подготовка системы завершена"
