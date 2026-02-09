@@ -1,19 +1,43 @@
-# AI Jarvis - Quick Install
+#!/bin/bash
 
-One-command installation for AI Jarvis personal assistant:
+# =============================================================================
+# AI Jarvis - Quick Install (No Make Required)
+# =============================================================================
+# Direct installation script that doesn't require make
+# Usage: sudo bash install.sh
+# =============================================================================
 
-```bash
-git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && sudo make install
-```
+set -e
 
-The installer will:
-- ✅ Check system requirements  
-- ✅ Install system updates
-- ✅ Install Docker if needed
-- ✅ Run interactive configuration wizard
-- ✅ Install frontend dependencies
-- ✅ Deploy all services
-- ✅ Initialize database
-- ✅ Create admin user
+echo ""
+echo "🚀 AI Jarvis - Installation"
+echo "============================"
+echo ""
 
-After installation, use `make help` to see all available commands.
+# Check if running as root
+if [[ "$EUID" -ne 0 ]]; then
+    echo "❌ This script must be run as root or with sudo"
+    echo "   Please run: sudo bash install.sh"
+    exit 1
+fi
+
+# Change to script directory
+cd "$(dirname "$0")"
+
+# Check if scripts directory exists
+if [ -d "scripts" ]; then
+    # Use modular installation
+    echo "ℹ️  Using modular installation system"
+    chmod +x scripts/*.sh
+    bash ./scripts/install.sh
+else
+    # Fallback to legacy setup.sh
+    echo "ℹ️  Using legacy setup script"
+    if [ -f "setup.sh" ]; then
+        chmod +x setup.sh
+        ./setup.sh
+    else
+        echo "❌ Neither scripts/install.sh nor setup.sh found"
+        exit 1
+    fi
+fi
