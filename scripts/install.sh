@@ -52,9 +52,26 @@ if [ -f ".env" ] && docker ps &> /dev/null 2>&1; then
     if prompt_yes_no "Остановить и очистить перед переустановкой?" "y"; then
         log_info "Останавливаем сервисы..."
         docker compose down -v 2>/dev/null || true
-        log_info "Очищаем Docker образы..."
-        docker rmi $(docker images -q 'ai_assist-*' 2>/dev/null) 2>/dev/null || true
+        
+        log_info "Очищаем Docker образы проекта..."
+        docker rmi -f $(docker images -q 'ai_assist-*' 2>/dev/null) 2>/dev/null || true
+        
+        log_info "Очищаем неиспользуемые Docker образы..."
+        docker image prune -af 2>/dev/null || true
+        
+        log_info "Очищаем build cache..."
+        docker builder prune -af 2>/dev/null || true
+        
+        log_info "Очищаем volumes..."
+        docker volume prune -f 2>/dev/null || true
+        
+        log_info "Очищаем networks..."
+        docker network prune -f 2>/dev/null || true
+        
+        # Показываем освобождённое место
         log_success "Очистка завершена"
+        log_info "Проверяем место на диске..."
+        df -h / | grep -v Filesystem
     else
         log_info "Продолжаем установку без очистки"
     fi
