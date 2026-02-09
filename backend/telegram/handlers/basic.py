@@ -132,3 +132,21 @@ async def cancel_handler(message: Message, state: FSMContext):
         "❌ Действие отменено.",
         reply_markup=get_main_menu_keyboard()
     )
+
+
+@router.message(Command("new_task"))
+async def cmd_new_task(message: Message):
+    """Handle /new_task command."""
+    await message.answer("📝 <b>Новая задача</b>\n\nНапишите, что нужно сделать?\n<i>Например: Купить продукты вечером</i>")
+
+
+@router.message(Command("calendar"))
+async def cmd_calendar(message: Message):
+    """Handle /calendar command."""
+    await message.answer("📅 <b>Календарь</b>\n\nКакое событие запланировать?\n<i>Например: Встреча с командой завтра в 10:00</i>")
+
+
+@router.message(Command("remind"))
+async def cmd_remind(message: Message):
+    """Handle /remind command."""
+    await message.answer("⏰ <b>Напоминание</b>\n\nО чем напомнить и когда?\n<i>Например: Выпить таблетку через 15 минут</i>")
