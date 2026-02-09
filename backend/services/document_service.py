@@ -62,13 +62,13 @@ class DocumentService:
         # Create document
         document = Document(
             user_id=user_id,
+            filename=os.path.basename(file_path),
             original_filename=original_filename,
             file_path=file_path,
             file_size=file_size,
-            file_type=file_type,
-            file_hash=file_hash,
+            document_type=file_type,
             meta_data=metadata or {},
-            upload_date=datetime.utcnow()
+            created_at=datetime.utcnow()
         )
         
         self.db.add(document)
