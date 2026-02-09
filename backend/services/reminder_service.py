@@ -8,7 +8,7 @@ class ReminderService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def create_reminder(self, user_id: int, title: string, remind_at: datetime, message: Optional[str] = None):
+    async def create_reminder(self, user_id: int, title: str, remind_at: datetime, message: Optional[str] = None):
         reminder = Reminder(
             user_id=user_id,
             title=title,
