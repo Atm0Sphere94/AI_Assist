@@ -1,7 +1,7 @@
 """Agentic workflow using LangGraph."""
 import logging
 from typing import Literal, TypedDict, Annotated
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from config import settings
@@ -154,7 +154,7 @@ def build_workflow() -> StateGraph:
     # workflow.add_node("rag_agent", rag_agent_node)
     
     # Add edges
-    workflow.add_edge(START, "intent_router")
+    workflow.add_edge("__start__", "intent_router")
     
     # Conditional routing from intent_router
     workflow.add_conditional_edges(
@@ -172,7 +172,7 @@ def build_workflow() -> StateGraph:
     )
     
     # All agents end after processing
-    workflow.add_edge("general_response", END)
+    workflow.add_edge("general_response", "__end__")
     
     # Compile the workflow
     return workflow.compile()
