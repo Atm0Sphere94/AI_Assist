@@ -2,9 +2,9 @@ import json
 from datetime import datetime, timedelta
 from langchain_core.messages import AIMessage, SystemMessage
 from .workflow import AgentState, llm
-from ..db.session import async_session_factory
-from ..services.calendar_service import CalendarService
-from ..db.models import User
+from db.session import async_session_factory
+from services.calendar_service import CalendarService
+from db.models import User
 from sqlalchemy import select
 
 async def calendar_agent_node(state: AgentState) -> AgentState:

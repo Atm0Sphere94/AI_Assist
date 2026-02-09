@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime
-from ..db.models import Task, TaskList
+from db.models import Task, TaskList
 from typing import Optional
 
 class TaskService:

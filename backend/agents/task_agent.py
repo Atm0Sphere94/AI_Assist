@@ -1,9 +1,9 @@
 import json
 from langchain_core.messages import AIMessage, SystemMessage
 from .workflow import AgentState, llm
-from ..db.session import async_session_factory
-from ..services.task_service import TaskService
-from ..db.models import User
+from db.session import async_session_factory
+from services.task_service import TaskService
+from db.models import User
 from sqlalchemy import select
 
 async def task_agent_node(state: AgentState) -> AgentState:

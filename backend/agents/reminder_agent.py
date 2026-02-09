@@ -1,10 +1,9 @@
-import json
 from datetime import datetime, timedelta
 from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from .workflow import AgentState, llm
-from ..db.session import async_session_factory
-from ..services.reminder_service import ReminderService
-from ..db.models import User
+from db.session import async_session_factory
+from services.reminder_service import ReminderService
+from db.models import User
 from sqlalchemy import select
 
 async def reminder_agent_node(state: AgentState) -> AgentState:
