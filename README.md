@@ -65,23 +65,37 @@
 git clone https://github.com/Atm0Sphere94/AI_Assist.git
 cd AI_Assist
 
-# 2. Run interactive setup
-chmod +x setup.sh
-./setup.sh
+# 2. One-command installation
+make install
 
-# 3. Install frontend dependencies
-cd frontend
-npm install
-cd ..
+# That's it! 🎉
+```
 
-# 4. Start all services
-docker-compose up -d
+The `make install` command will:
+- ✅ Check system requirements
+- ✅ Collect all credentials interactively
+- ✅ Create configuration files
+- ✅ Install frontend dependencies
+- ✅ Build and start Docker containers
+- ✅ Initialize database
+- ✅ Create admin user automatically
+
+### Quick Commands
+
+```bash
+make start    # Start all services
+make stop     # Stop all services
+make logs     # View logs
+make restart  # Restart services
+make help     # Show all available commands
+```
+
+### Create Admin User
 │   └── config.py        # Конфигурация
 ├── frontend/            # Next.js приложение
 ├── data/                # Данные (uploads, векторная БД)
 ├── logs/                # Логи
 └── docker-compose.yml
-```
 
 ## API Документация
 
