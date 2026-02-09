@@ -135,18 +135,57 @@ async def cancel_handler(message: Message, state: FSMContext):
 
 
 @router.message(Command("new_task"))
+@router.message(F.text == "📝 Новая задача")
 async def cmd_new_task(message: Message):
-    """Handle /new_task command."""
+    """Handle /new_task command and button."""
     await message.answer("📝 <b>Новая задача</b>\n\nНапишите, что нужно сделать?\n<i>Например: Купить продукты вечером</i>")
 
 
 @router.message(Command("calendar"))
+@router.message(F.text == "📅 Календарь")
 async def cmd_calendar(message: Message):
-    """Handle /calendar command."""
+    """Handle /calendar command and button."""
     await message.answer("📅 <b>Календарь</b>\n\nКакое событие запланировать?\n<i>Например: Встреча с командой завтра в 10:00</i>")
 
 
 @router.message(Command("remind"))
+@router.message(F.text == "⏰ Напоминание")
 async def cmd_remind(message: Message):
-    """Handle /remind command."""
+    """Handle /remind command and button."""
     await message.answer("⏰ <b>Напоминание</b>\n\nО чем напомнить и когда?\n<i>Например: Выпить таблетку через 15 минут</i>")
+
+
+@router.message(F.text == "📚 База знаний")
+async def cmd_knowledge(message: Message):
+    """Handle knowledge base button."""
+    await message.answer(
+        "📚 <b>База знаний</b>\n\n"
+        "Чтобы найти информацию, просто задайте вопрос.\n"
+        "<i>Например: \"Что в договоре про сроки?\"</i>"
+    )
+
+
+@router.message(F.text == "📄 Документы")
+async def cmd_documents(message: Message):
+    """Handle documents button."""
+    await message.answer(
+        "📄 <b>Документы</b>\n\n"
+        "Отправьте мне файл (PDF, DOCX, TXT), и я сохраню его в базу знаний.\n"
+        "После этого вы сможете задавать вопросы по его содержанию."
+    )
+
+
+@router.message(F.text == "🖼️ Генерация картинки")
+async def cmd_image(message: Message):
+    """Handle image generation button."""
+    await message.answer(
+        "🖼️ <b>Генерация изображений</b>\n\n"
+        "Опишите, что вы хотите увидеть, добавив слово \"нарисуй\".\n"
+        "<i>Например: \"Нарисуй кота в космосе\"</i>"
+    )
+
+
+@router.message(F.text == "❓ Помощь")
+async def cmd_help_btn(message: Message):
+    """Handle help button."""
+    await cmd_help(message)
