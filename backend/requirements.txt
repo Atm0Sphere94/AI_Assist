@@ -12,10 +12,10 @@ passlib[bcrypt]==1.7.4
 # Telegram
 aiogram==3.4.1
 
-# LangChain & LangGraph
-langchain==0.1.7
+# LangChain & AI
+langchain==0.1.9
 langchain-openai==0.0.5
-langchain-community==0.0.20
+langchain-community==0.0.20  # For Ollama support
 langchain-core==0.1.23
 langgraph==0.0.26
 

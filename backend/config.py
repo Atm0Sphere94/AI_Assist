@@ -49,6 +49,17 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/0"
     celery_result_backend: str = "redis://localhost:6379/1"
     
+    # Ollama (Uncensored Models)
+    use_ollama: bool = Field(default=False)
+    ollama_base_url: str = Field(default="http://localhost:11434")
+    ollama_model: str = Field(default="dolphin-mixtral")
+    
+    # DALL-E Image Generation
+    dalle_model: str = Field(default="dall-e-3")
+    
+    # Allowed Origins for CORS
+    allowed_origins: str = Field(default="http://localhost:3000,http://localhost:8000")
+    
     # Optional
     stability_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None

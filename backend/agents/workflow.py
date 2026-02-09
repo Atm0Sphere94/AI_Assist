@@ -1,20 +1,32 @@
-"""LangGraph-based agentic workflow for intelligent task routing."""
+"""Agentic workflow using LangGraph."""
 import logging
 from typing import Literal, TypedDict, Annotated
-from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Initialize LLM
-llm = ChatOpenAI(
-    model=settings.openai_model,
-    api_key=settings.openai_api_key,
-    temperature=0.7,
-)
+# Initialize LLM based on configuration
+def get_llm():
+    """Get LLM instance based on settings."""
+    if settings.use_ollama:
+        from langchain_community.llms import Ollama
+        return Ollama(
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+            temperature=0.7,
+        )
+    else:
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=settings.openai_model, # Use settings.openai_model as in original
+            temperature=0.7,
+            api_key=settings.openai_api_key
+        )
+
+llm = get_llm()
 
 
 class AgentState(TypedDict):
