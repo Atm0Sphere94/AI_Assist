@@ -6,7 +6,7 @@ import { authApi } from "@/lib/api";
 
 declare global {
     interface Window {
-        onTelegramAuth: (user: any) => void;
+        onTelegramAuth?: (user: any) => void;
     }
 }
 
