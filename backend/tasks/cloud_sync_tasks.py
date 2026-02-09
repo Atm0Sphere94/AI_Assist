@@ -16,9 +16,8 @@ from db.cloud_storage_models import (
 )
 from services.yandex_disk_service import YandexDiskService
 from services.icloud_service import ObsidianSyncService
-# TODO: Create these services
-# from services.document_service import DocumentService
-# from services.rag_service import RAGService
+from services.document_service import DocumentService
+from services.rag_service import RAGService
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -104,14 +103,23 @@ async def sync_yandex_disk(
                     )
                     
                     if success and storage.process_documents:
-                        # TODO: Process document (add to knowledge base)
-                        # doc_service = DocumentService(db)
-                        # rag_service = RAGService(db)
-                        # document = await doc_service.create_document(...)
-                        # await rag_service.index_document(document.id)
-                        # file_op.document_id = document.id
-                        # file_op.is_processed = True
-                        # file_op.is_indexed = True
+                        # Process document (add to knowledge base)
+                        doc_service = DocumentService(db)
+                        rag_service = RAGService(db)
+                        
+                        # Create document record
+                        document = await doc_service.create_document(
+                            user_id=storage.user_id,
+                            file_path=local_path,
+                            original_filename=file_info['name']
+                        )
+                        
+                        # Index in RAG
+                        await rag_service.index_document(document.id)
+                        
+                        file_op.document_id = document.id
+                        file_op.is_processed = True
+                        file_op.is_indexed = True
                         job.new_files += 1
                     
                     file_op.status = SyncStatus.COMPLETED
@@ -238,14 +246,27 @@ async def sync_obsidian_vault(
                         
                         metadata = obsidian_service.extract_note_metadata(content)
                         
-                        # TODO: Process document
-                        # doc_service = DocumentService(db)
-                        # rag_service = RAGService(db)
-                        # document = await doc_service.create_document(...)
-                        # await rag_service.index_document(...)
-                        # file_op.document_id = document.id
-                        # file_op.is_processed = True
-                        # file_op.is_indexed = True
+                        # Process document
+                        doc_service = DocumentService(db)
+                        rag_service = RAGService(db)
+                        
+                        document = await doc_service.create_document(
+                            user_id=vault.user_id,
+                            file_path=local_path,
+                            original_filename=note_info['name'],
+                            metadata=metadata
+                        )
+                        
+                        # Index with Obsidian-specific processing
+                        await rag_service.index_document(
+                            document.id,
+                            preserve_markdown=vault.preserve_markdown,
+                            process_wiki_links=vault.process_backlinks
+                        )
+                        
+                        file_op.document_id = document.id
+                        file_op.is_processed = True
+                        file_op.is_indexed = True
                         job.new_files += 1
                     
                     file_op.status = SyncStatus.COMPLETED
