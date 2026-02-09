@@ -3,7 +3,7 @@
 # =============================================================================
 # AI Jarvis - Установка Docker
 # =============================================================================
-# Шаг 2: Устанавливает Docker и Docker Compose если их нет
+# Шаг 2: Устанавливает Docker и Docker Compose
 # =============================================================================
 
 set -e
@@ -15,136 +15,77 @@ source "$SCRIPT_DIR/utils.sh"
 log_step "Шаг 2: Установка Docker"
 
 # Проверка установлен ли Docker
-if check_docker && check_docker_compose; then
-    log_success "Docker и Docker Compose уже установлены"
+if command -v docker &> /dev/null; then
+    log_success "Docker уже установлен"
+    docker --version
     
-    # Проверка работает ли Docker
-    if docker ps &> /dev/null 2>&1; then
-        log_success "Docker работает"
+    # Проверка Docker Compose
+    if docker compose version &> /dev/null 2>&1; then
+        docker compose version
     else
-        log_warning "Docker установлен но не запущен, запускаем..."
-        # Пробуем запустить через systemd
-        if command -v systemctl &> /dev/null; then
-            systemctl start docker 2>/dev/null || true
-            systemctl enable docker 2>/dev/null || true
-            sleep 2
-        fi
-        
-        # Если все равно не работает - запускаем напрямую
-        if ! docker ps &> /dev/null 2>&1; then
-            log_info "Запускаем dockerd вручную..."
-            pkill dockerd 2>/dev/null || true
-            
-            # Определяем путь к dockerd
-            DOCKERD_PATH="/usr/bin/dockerd"
-            if [ ! -x "$DOCKERD_PATH" ]; then
-                DOCKERD_PATH=$(which dockerd 2>/dev/null || echo "")
-            fi
-            
-            if [ -n "$DOCKERD_PATH" ] && [ -x "$DOCKERD_PATH" ]; then
-                nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
-                sleep 5
-            else
-                log_error "dockerd не найден"
-                exit 1
-            fi
-        fi
+        log_error "Docker Compose плагин не найден"
+        exit 1
     fi
-else
-    # Установка Docker
-    install_docker
     
-    log_info "Запускаем Docker..."
-    
-    # Пробуем через systemd
-    if command -v systemctl &> /dev/null; then
-        systemctl daemon-reload 2>/dev/null || true
-        
-        if systemctl enable docker 2>/dev/null && systemctl start docker 2>/dev/null; then
-            log_success "Docker запущен через systemd"
-            sleep 3
+    # Добавляем пользователя в группу docker
+    ORIGINAL_USER=${SUDO_USER:-$(whoami)}
+    if [ "$ORIGINAL_USER" != "root" ] && id "$ORIGINAL_USER" &> /dev/null; then
+        if groups "$ORIGINAL_USER" | grep &> /dev/null '\bdocker\b'; then
+            log_success "Пользователь '$ORIGINAL_USER' уже в группе docker"
         else
-            log_warning "Systemd не может запустить Docker, запускаем вручную"
+            log_info "Добавляем пользователя '$ORIGINAL_USER' в группу docker..."
+            usermod -aG docker "$ORIGINAL_USER"
         fi
     fi
     
-    # Проверяем работает ли через systemd
-    if ! docker ps &> /dev/null 2>&1; then
-        log_info "Запускаем dockerd напрямую..."
-        
-        # Останавливаем все процессы dockerd
-        pkill dockerd 2>/dev/null || true
-        sleep 2
-        
-        # Определяем путь к dockerd
-        DOCKERD_PATH=""
-        if [ -x "/usr/bin/dockerd" ]; then
-            DOCKERD_PATH="/usr/bin/dockerd"
-        elif [ -x "/usr/local/bin/dockerd" ]; then
-            DOCKERD_PATH="/usr/local/bin/dockerd"
-        elif command -v dockerd &> /dev/null; then
-            DOCKERD_PATH=$(which dockerd)
-        fi
-        
-        if [ -z "$DOCKERD_PATH" ]; then
-            log_error "dockerd не найден!"
-            log_info "Поиск установленных файлов Docker..."
-            find /usr -name "dockerd" 2>/dev/null || true
-            exit 1
-        fi
-        
-        log_info "Используем dockerd: $DOCKERD_PATH"
-        
-        # Запускаем dockerd в фоне
-        nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
-        
-        # Ждём запуска
-        log_info "Ожидаем запуска Docker..."
-        for i in {1..10}; do
-            sleep 1
-            if docker ps &> /dev/null 2>&1; then
-                log_success "Docker запущен успешно"
-                break
-            fi
-            
-            if [ $i -eq 10 ]; then
-                log_error "Не удалось запустить Docker"
-                log_info "Проверьте логи: /var/log/docker.log"
-                tail -n 20 /var/log/docker.log 2>/dev/null || true
-                exit 1
-            fi
-        done
-    fi
-    
-    log_success "Установка Docker завершена"
+    log_success "Docker готов к работе"
+    echo ""
+    exit 0
+fi
+
+# Установка зависимостей
+log_info "Устанавливаем зависимости..."
+apt-get update -qq
+apt-get install -y -qq \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# Добавление GPG ключа Docker
+log_info "Добавляем GPG ключ Docker..."
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg 2>/dev/null | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null
+chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Добавление репозитория Docker
+log_info "Добавляем репозиторий Docker..."
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Установка Docker
+log_info "Устанавливаем Docker Engine и Compose..."
+apt-get update -qq
+apt-get install -y -qq \
+    docker-ce \
+    docker-ce-cli \
+    containerd.io \
+    docker-buildx-plugin \
+    docker-compose-plugin
+
+# Добавление пользователя в группу docker
+ORIGINAL_USER=${SUDO_USER:-$(whoami)}
+if [ "$ORIGINAL_USER" != "root" ] && id "$ORIGINAL_USER" &> /dev/null; then
+    log_info "Добавляем пользователя '$ORIGINAL_USER' в группу docker..."
+    usermod -aG docker "$ORIGINAL_USER"
 fi
 
 # Проверка установки
-if docker --version &> /dev/null; then
-    docker_version=$(docker --version)
-    log_success "Docker: $docker_version"
-else
-    log_error "Установка Docker не удалась"
-    exit 1
-fi
+log_success "Проверяем установку..."
+docker --version
+docker compose version
 
-if docker compose version &> /dev/null 2>&1; then
-    compose_version=$(docker compose version)
-    log_success "Docker Compose: $compose_version"
-else
-    log_error "Установка Docker Compose не удалась"
-    exit 1
-fi
-
-# Финальная проверка что Docker работает
-log_info "Проверяем работу Docker..."
-if docker ps &> /dev/null 2>&1; then
-    log_success "✓ Docker работает корректно"
-else
-    log_error "✗ Docker не отвечает"
-    log_info "Последние 20 строк логов:"
-    tail -n 20 /var/log/docker.log 2>/dev/null || echo "Логи недоступны"
-    exit 1
-fi
-
+log_success "Docker успешно установлен!"
 echo ""
