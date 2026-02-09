@@ -148,6 +148,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.production
+      args:
+        NEXT_PUBLIC_API_URL: https://aiwind.ru/api
+        NEXT_PUBLIC_BOT_USERNAME: v1tar_bot
+        NEXT_PUBLIC_ADMIN_TELEGRAM_ID: "7956463747"
     container_name: ai_jarvis_frontend
     restart: unless-stopped
     ports:
