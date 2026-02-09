@@ -123,14 +123,13 @@ echo ""
 log_info "Конфигурация AI модели"
 
 if prompt_yes_no "Использовать OpenAI API?" "y"; then
-    while [ -z "$OPENAI_KEY" ]; then
+    while [ -z "$OPENAI_KEY" ]; do
         prompt_secure_input "OpenAI API Key" OPENAI_KEY
     done
     USE_OLLAMA=false
 else
     log_info "Будем использовать Ollama (локальные модели)"
     USE_OLLAMA=true
-    OPENAI_KEY="sk-not-required"
 fi
 
 # =============================================================================
