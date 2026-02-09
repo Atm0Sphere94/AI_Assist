@@ -59,7 +59,7 @@ class CloudStorage(Base):
     total_files_processed = Column(Integer, default=0)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -95,7 +95,7 @@ class CloudSyncJob(Base):
     error_details = Column(JSON, nullable=True)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -129,7 +129,7 @@ class CloudFileOperation(Base):
     error_message = Column(Text, nullable=True)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -169,7 +169,7 @@ class ObsidianVault(Base):
     total_notes = Column(Integer, default=0)
     
     # Metadata
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
