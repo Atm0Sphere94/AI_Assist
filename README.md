@@ -102,6 +102,32 @@ make restart  # Restart services
 make help     # Show all available commands
 ```
 
+### Production Deployment (VPS with Domain)
+
+For production deployment with your own domain and SSL:
+
+```bash
+# One-line production deploy
+curl -fsSL https://raw.githubusercontent.com/Atm0Sphere94/AI_Assist/main/deploy-production.sh | bash
+```
+
+This will:
+- ✅ Configure domain and DNS
+- ✅ Setup Traefik reverse proxy
+- ✅ Issue SSL certificates automatically (Let's Encrypt)
+- ✅ Deploy with docker-compose
+- ✅ Configure security headers
+- ✅ Enable HTTPS
+
+**Supports:**
+- Wildcard SSL certificates
+- Multiple DNS providers (Cloudflare, Route53, DigitalOcean)
+- Auto-renewal of certificates
+- HTTPS redirect
+- Security headers
+
+See [PRODUCTION_DEPLOY.md](PRODUCTION_DEPLOY.md) for detailed guide.
+
 ### Create Admin User
 │   └── config.py        # Конфигурация
 ├── frontend/            # Next.js приложение
