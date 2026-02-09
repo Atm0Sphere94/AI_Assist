@@ -12,14 +12,15 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
     )
     builder.row(
         KeyboardButton(text="⏰ Напоминание"),
-        KeyboardButton(text="🖼️ Генерация картинки"),
+        KeyboardButton(text="📚 База знаний"),
     )
     builder.row(
-        KeyboardButton(text="📚 База знаний"),
+        KeyboardButton(text="🖼️ Генерация картинки"),
         KeyboardButton(text="📄 Документы"),
     )
     builder.row(
         KeyboardButton(text="⚙️ Настройки"),
+        KeyboardButton(text="❓ Помощь"),
     )
     return builder.as_markup(resize_keyboard=True)
 
