@@ -4,6 +4,7 @@ from celery.schedules import crontab
 from config import settings
 
 # Create Celery app
+print(f"DEBUG: Celery Broker URL: {settings.celery_broker_url}")
 celery_app = Celery(
     "jarvis",
     broker=settings.celery_broker_url,
