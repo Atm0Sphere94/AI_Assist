@@ -153,8 +153,8 @@ def build_workflow() -> StateGraph:
     # workflow.add_node("document_agent", document_agent_node)
     # workflow.add_node("rag_agent", rag_agent_node)
     
-    # Add edges
-    workflow.add_edge("__start__", "intent_router")
+    # Set entry point
+    workflow.set_entry_point("intent_router")
     
     # Conditional routing from intent_router
     workflow.add_conditional_edges(
@@ -171,8 +171,8 @@ def build_workflow() -> StateGraph:
         }
     )
     
-    # All agents end after processing
-    workflow.add_edge("general_response", "__end__")
+    # Set finish point
+    workflow.set_finish_point("general_response")
     
     # Compile the workflow
     return workflow.compile()
