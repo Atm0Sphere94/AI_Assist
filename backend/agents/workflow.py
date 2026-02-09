@@ -37,24 +37,25 @@ class AgentState(TypedDict):
     context: dict
 
 
-async def intent_router(state: AgentState) -> Literal["task_agent", "calendar_agent", "reminder_agent", "image_agent", "document_agent", "rag_agent", "general_response"]:
+# Import agent nodes
+from .task_agent import task_agent_node
+from .calendar_agent import calendar_agent_node
+from .reminder_agent import reminder_agent_node
+from .image_agent import image_agent_node
+from .document_agent import document_agent_node
+from .rag_agent import rag_agent_node
+
+# Router Node (Sync wrapper logic)
+async def router_node(state: AgentState) -> AgentState:
     """
-    Determine user intent and route to appropriate agent.
-    
-    Uses LLM to classify user's message into one of the following intents:
-    - task: Task management (create, update, list tasks)
-    - calendar: Calendar events
-    - reminder: Reminders
-    - image: Image  generation
-    - document: Document processing
-    - knowledge: Knowledge base queries
-    - general: General conversation
+    Analyze state and Determine intent.
+    This node calls the LLM to classify the intent and updates the state.
     """
     messages = state["messages"]
     last_message = messages[-1] if messages else None
     
     if not last_message or not hasattr(last_message, 'content'):
-        return "general_response"
+        return {**state, "intent": "general"}
     
     user_message = last_message.content
     
@@ -88,53 +89,29 @@ async def intent_router(state: AgentState) -> Literal["task_agent", "calendar_ag
         intent = response.content.strip().lower()
         logger.info(f"Detected intent: {intent} for message: {user_message[:50]}...")
         
-        # Map intent to agent
-        intent_mapping = {
-            "task": "task_agent",
-            "calendar": "calendar_agent",
-            "reminder": "reminder_agent",
-            "image": "image_agent",
-            "document": "document_agent",
-            "knowledge": "rag_agent",
-            "general": "general_response",
-        }
-        
-        agent = intent_mapping.get(intent, "general_response")
-        
-        # Update state with detected intent
-        state["intent"] = intent
-        
-        return agent
+        return {**state, "intent": intent}
         
     except Exception as e:
-        logger.error(f"Error in intent routing: {e}", exc_info=True)
-        return "general_response"
+        logger.error(f"Error in intent classification: {e}", exc_info=True)
+        return {**state, "intent": "general"}
 
 
-async def general_response_node(state: AgentState) -> AgentState:
-    """Handle general conversation."""
-    messages = state["messages"]
+# Conditional edge function (must be sync)
+def route_to_agent(state: AgentState) -> str:
+    """Route to appropriate agent based on state intent."""
+    intent = state.get("intent", "general")
     
-    system_prompt = """Ты AI ассистент Jarvis. Отвечай дружелюбно и помогай пользователю. 
-Если пользователь здоровается, поприветствуй его и кратко расскажи о своих возможностях.
-Если вопрос неясен, вежливо попроси уточнить."""
+    intent_mapping = {
+        "task": "task_agent",
+        "calendar": "calendar_agent",
+        "reminder": "reminder_agent",
+        "image": "image_agent",
+        "document": "document_agent",
+        "knowledge": "rag_agent",
+        "general": "general_response",
+    }
     
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(content=system_prompt),
-            *messages
-        ])
-        
-        return {
-            **state,
-            "messages": [response]
-        }
-    except Exception as e:
-        logger.error(f"Error in general response: {e}", exc_info=True)
-        return {
-            **state,
-            "messages": [AIMessage(content="Извините, произошла ошибка. Попробуйте ещё раз.")]
-        }
+    return intent_mapping.get(intent, "general_response")
 
 
 # Build the workflow graph
@@ -143,18 +120,46 @@ def build_workflow() -> StateGraph:
     workflow = StateGraph(AgentState)
     
     # Add nodes
+    workflow.add_node("router", router_node)
     workflow.add_node("general_response", general_response_node)
-    # TODO: Add other agent nodes when implemented
     
-    # Simple entry point - just go to general_response
-    workflow.set_entry_point("general_response")
+    # Add agent nodes
+    workflow.add_node("task_agent", task_agent_node)
+    workflow.add_node("calendar_agent", calendar_agent_node)
+    workflow.add_node("reminder_agent", reminder_agent_node)
+    workflow.add_node("image_agent", image_agent_node)
+    workflow.add_node("document_agent", document_agent_node)
+    workflow.add_node("rag_agent", rag_agent_node)
     
-    # Set finish point
+    # Set entry point
+    workflow.set_entry_point("router")
+    
+    # Conditional routing from router
+    workflow.add_conditional_edges(
+        "router",
+        route_to_agent,
+        {
+            "task_agent": "task_agent",
+            "calendar_agent": "calendar_agent",
+            "reminder_agent": "reminder_agent",
+            "image_agent": "image_agent",
+            "document_agent": "document_agent",
+            "rag_agent": "rag_agent",
+            "general_response": "general_response",
+        }
+    )
+    
+    # Set finish points for all agents
+    workflow.set_finish_point("task_agent")
+    workflow.set_finish_point("calendar_agent")
+    workflow.set_finish_point("reminder_agent")
+    workflow.set_finish_point("image_agent")
+    workflow.set_finish_point("document_agent")
+    workflow.set_finish_point("rag_agent")
     workflow.set_finish_point("general_response")
     
     # Compile the workflow
     return workflow.compile()
-
 
 # Global workflow instance
 agent_workflow = build_workflow()
