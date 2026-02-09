@@ -26,8 +26,11 @@ async def message_handler(message: Message, state: FSMContext):
     user_id = message.from_user.id
     user_message = message.text
     
-    # Show typing indicator
-    await message.bot.send_chat_action(message.chat.id, "typing")
+    # Show typing indicator (non-blocking)
+    try:
+        await message.bot.send_chat_action(message.chat.id, "typing", request_timeout=10)
+    except Exception as e:
+        logger.warning(f"Failed to send typing action: {e}")
     
     try:
         # Get current FSM state data for context
