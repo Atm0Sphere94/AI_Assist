@@ -130,6 +130,7 @@ if prompt_yes_no "Использовать OpenAI API?" "y"; then
 else
     log_info "Будем использовать Ollama (локальные модели)"
     USE_OLLAMA=true
+    OPENAI_KEY="sk-not-required"
 fi
 
 # =============================================================================
