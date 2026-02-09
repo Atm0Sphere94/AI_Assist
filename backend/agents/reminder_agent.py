@@ -64,8 +64,12 @@ User Request: {user_request}
                 message=data.get("message")
             )
             
-            # Simplified response
-            response_text = f"✅ Напоминание создано!"
+            # Detailed response with User Time
+            response_text = (
+                f"✅ Напоминание создано!\n\n"
+                f"📌 **{reminder.title}**\n"
+                f"🕒 {reminder.remind_at.strftime('%d.%m.%Y %H:%M')}"
+            )
                 
     except Exception as e:
         response_text = f"❌ Ошибка: {str(e)}"
