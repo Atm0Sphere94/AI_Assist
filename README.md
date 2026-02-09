@@ -51,24 +51,36 @@
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (for frontend)
-- Telegram Bot Token ([get from @BotFather](https://t.me/BotFather))
-- OpenAI API Key (optional if using Ollama)
-- Your Telegram ID ([get from @userinfobot](https://t.me/userinfobot))
+### One-Line Installation
 
-### Installation
+```bash
+curl -fsSL https://raw.githubusercontent.com/Atm0Sphere94/AI_Assist/main/quick-install.sh | bash
+```
+
+This single command will:
+- ✅ Clone the repository
+- ✅ Run interactive setup
+- ✅ Install all dependencies
+- ✅ Build Docker containers
+- ✅ Initialize database
+- ✅ Create admin user
+- ✅ Start all services
+
+### Alternative: Manual Installation
+
+```bash
+git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && make install
+```
+
+Or step by step:
 
 ```bash
 # 1. Clone repository
 git clone https://github.com/Atm0Sphere94/AI_Assist.git
 cd AI_Assist
 
-# 2. One-command installation
+# 2. Run installation
 make install
-
-# That's it! 🎉
 ```
 
 The `make install` command will:
