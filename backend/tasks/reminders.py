@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
@@ -14,14 +14,17 @@ logger = logging.getLogger(__name__)
 async def process_reminders():
     """Async logic to check and send reminders."""
     async with async_session_factory() as session:
-        now = datetime.now()
-        logger.info(f"Checking reminders at {now}...")
+        # Check against user time (UTC+3)
+        # In production this should be per-user timezone
+        utc_now = datetime.utcnow()
+        user_now = utc_now + timedelta(hours=3)
+        logger.info(f"Checking reminders at {user_now} (User Time)...")
         
         # Join User to get telegram_id
         query = select(Reminder).options(selectinload(Reminder.user)).where(
             and_(
                 Reminder.is_sent == False,
-                Reminder.remind_at <= now
+                Reminder.remind_at <= user_now
             )
         )
         

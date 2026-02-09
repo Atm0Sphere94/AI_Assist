@@ -26,7 +26,11 @@ Current time: {current_time}
 User Request: {user_request}
 """
     
-    current_time = datetime.now().isoformat()
+    # Adjust to user's timezone (UTC+3 for Moscow)
+    # In a full production app, this should be taken from user settings
+    utc_now = datetime.utcnow()
+    user_now = utc_now + timedelta(hours=3)
+    current_time = user_now.isoformat()
     
     try:
         extraction_response = await llm.ainvoke([
@@ -46,6 +50,11 @@ User Request: {user_request}
             user = await get_or_create_user(session, state["user_id"], state.get("context"))
 
             reminder_service = ReminderService(session)
+            
+            # Parse time and convert back to UTC for storage if needed, 
+            # but for now we'll store what the LLM gave us which is "user time".
+            # The worker needs to check against "user time" or we convert here.
+            # Strategy: Store as is. Worker checks: is reminder_time <= (UTC_now + 3h)?
             remind_at = datetime.fromisoformat(data["remind_at"])
             
             reminder = await reminder_service.create_reminder(
@@ -55,10 +64,11 @@ User Request: {user_request}
                 message=data.get("message")
             )
             
-            response_text = f"✅ Напоминание создано!\n\n📌 **{reminder.title}**\n🕒 {reminder.remind_at.strftime('%d.%m.%Y %H:%M')}"
+            # Simplified response
+            response_text = f"✅ Напоминание создано!"
                 
     except Exception as e:
-        response_text = f"❌ Не удалось создать напоминание: {str(e)}"
+        response_text = f"❌ Ошибка: {str(e)}"
     
     return {
         **state,
