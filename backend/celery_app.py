@@ -21,6 +21,7 @@ celery_app.conf.update(
     task_track_started=True,
     task_time_limit=3600,  # 1 hour
     task_soft_time_limit=3000,  # 50 minutes
+    broker_heartbeat=0,  # Disable heartbeat to prevent connection drops
 )
 
 # Periodic tasks schedule
