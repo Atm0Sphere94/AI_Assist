@@ -67,7 +67,7 @@ log_header() {
 
 check_root() {
     if [[ "$EUID" -ne 0 ]]; then
-        log_error "This script must be run as root or with sudo"
+        log_error "Этот скрипт должен быть запущен от root или с sudo"
         return 1
     fi
     return 0
@@ -75,7 +75,7 @@ check_root() {
 
 check_os() {
     if [[ ! -f /etc/os-release ]]; then
-        log_error "Cannot detect OS. /etc/os-release not found"
+        log_error "Не удалось определить ОС. /etc/os-release не найден"
         return 1
     fi
     
@@ -83,19 +83,19 @@ check_os() {
     
     case "$ID" in
         ubuntu|debian)
-            log_success "Detected: $PRETTY_NAME"
+            log_success "Обнаружено: $PRETTY_NAME"
             export PKG_MANAGER="apt"
             return 0
             ;;
         centos|rhel|rocky|almalinux)
-            log_success "Detected: $PRETTY_NAME"
+            log_success "Обнаружено: $PRETTY_NAME"
             export PKG_MANAGER="yum"
             return 0
             ;;
         *)
-            log_warning "Unsupported OS: $PRETTY_NAME"
-            log_info "Installation may work but is not tested"
-            read -p "Continue anyway? (y/N) " -n 1 -r
+            log_warning "Неподдерживаемая ОС: $PRETTY_NAME"
+            log_info "Установка может работать, но не тестировалась"
+            read -p "Продолжить? (y/N) " -n 1 -r
             echo
             if [[ ! $REPLY =~ ^[Yy]$ ]]; then
                 return 1
@@ -114,7 +114,7 @@ check_system_resources() {
     local total_ram_gb=$((total_ram_kb / 1024 / 1024))
     
     if [ $total_ram_gb -lt $min_ram_gb ]; then
-        log_warning "Low RAM detected: ${total_ram_gb}GB (recommended: ${min_ram_gb}GB+)"
+        log_warning "Мало RAM: ${total_ram_gb}GB (рекомендуется: ${min_ram_gb}GB+)"
     else
         log_success "RAM: ${total_ram_gb}GB"
     fi
@@ -123,18 +123,18 @@ check_system_resources() {
     local free_disk_gb=$(df -BG / | awk 'NR==2 {print $4}' | sed 's/G//')
     
     if [ $free_disk_gb -lt $min_disk_gb ]; then
-        log_warning "Low disk space: ${free_disk_gb}GB (recommended: ${min_disk_gb}GB+)"
+        log_warning "Мало места на диске: ${free_disk_gb}GB (рекомендуется: ${min_disk_gb}GB+)"
     else
-        log_success "Free disk space: ${free_disk_gb}GB"
+        log_success "Свободно на диске: ${free_disk_gb}GB"
     fi
 }
 
 check_network() {
     if ping -c 1 8.8.8.8 &> /dev/null; then
-        log_success "Internet connection: OK"
+        log_success "Подключение к интернету: OK"
         return 0
     else
-        log_error "No internet connection detected"
+        log_error "Нет подключения к интернету"
         return 1
     fi
 }
@@ -146,38 +146,38 @@ check_network() {
 check_docker() {
     if command -v docker &> /dev/null; then
         local docker_version=$(docker --version | awk '{print $3}' | sed 's/,//')
-        log_success "Docker installed: $docker_version"
+        log_success "Docker установлен: $docker_version"
         return 0
     else
-        log_info "Docker not installed"
+        log_info "Docker не установлен"
         return 1
     fi
 }
 
 check_docker_compose() {
-    if command -v docker-compose &> /dev/null || docker compose version &> /dev/null; then
-        log_success "Docker Compose installed"
+    if command -v docker-compose &> /dev/null || docker compose version &> /dev/null 2>&1; then
+        log_success "Docker Compose установлен"
         return 0
     else
-        log_info "Docker Compose not installed"
+        log_info "Docker Compose не установлен"
         return 1
     fi
 }
 
 install_docker() {
-    log_info "Installing Docker..."
+    log_info "Устанавливаем Docker..."
     
     if [ "$PKG_MANAGER" == "apt" ]; then
         # Remove old versions
         apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
         
         # Install prerequisites
-        apt-get update
-        apt-get install -y ca-certificates curl gnupg lsb-release
+        apt-get update -qq
+        apt-get install -y -qq ca-certificates curl gnupg lsb-release
         
         # Add Docker GPG key
         install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg 2>/dev/null | gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null
         chmod a+r /etc/apt/keyrings/docker.gpg
         
         # Add repository
@@ -186,18 +186,16 @@ install_docker() {
           $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
         
         # Install Docker
-        apt-get update
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        apt-get update -qq
+        apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
         
     elif [ "$PKG_MANAGER" == "yum" ]; then
-        yum install -y yum-utils
+        yum install -y -q yum-utils
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-        yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-        systemctl start docker
-        systemctl enable docker
+        yum install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
     fi
     
-    log_success "Docker installed successfully"
+    log_success "Docker успешно установлен"
 }
 
 # =============================================================================
