@@ -47,14 +47,38 @@ async def remove_webhook():
     logger.info("Webhook removed")
 
 
+# Global task for polling
+_polling_task = None
+
+
 async def on_startup():
     """Execute on bot startup."""
+    global _polling_task
+    
     await setup_webhook()
+    
+    # Start polling in background if webhook not configured
+    if not settings.telegram_webhook_url:
+        import asyncio
+        _polling_task = asyncio.create_task(dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types()))
+        logger.info("Started polling in background")
+    
     logger.info("Bot started successfully")
 
 
 async def on_shutdown():
     """Execute on bot shutdown."""
+    global _polling_task
+    
+    # Stop polling if running
+    if _polling_task:
+        _polling_task.cancel()
+        try:
+            await _polling_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Polling stopped")
+    
     await bot.session.close()
     await redis.close()
     logger.info("Bot shut down")
