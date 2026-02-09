@@ -133,7 +133,7 @@ class Document(Base):
     document_type = Column(String(50), nullable=True)  # pdf, docx, txt, etc.
     is_processed = Column(Boolean, default=False)
     is_indexed = Column(Boolean, default=False)
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -149,7 +149,7 @@ class KnowledgeBase(Base):
     document_id = Column(Integer, ForeignKey("documents.id"), nullable=True)
     content = Column(Text, nullable=False)
     content_type = Column(String(50), default="document")  # document, conversation, manual
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     vector_id = Column(String(255), nullable=True)  # ID in Qdrant
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -165,7 +165,7 @@ class ConversationHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     role = Column(String(20), nullable=False)  # user, assistant, system
     content = Column(Text, nullable=False)
-    metadata = Column(JSON, nullable=True)
+    meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
