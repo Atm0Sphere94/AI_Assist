@@ -17,7 +17,7 @@ aiogram==3.4.1
 # LangChain & AI
 langchain==0.1.9
 langchain-openai==0.0.5
-langchain-community==0.0.20  # For Ollama support
+langchain-community==0.0.29  # For Ollama support
 langchain-core==0.1.23
 langgraph==0.0.26
 
