@@ -57,6 +57,10 @@ async def on_startup():
     
     await setup_webhook()
     
+    # Set bot commands
+    from .commands import set_bot_commands
+    await set_bot_commands(bot)
+    
     # Start polling in background if webhook not configured
     if not settings.telegram_webhook_url:
         import asyncio
