@@ -12,47 +12,47 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
-log_step "Step 3: Configuration Wizard"
+log_step "Шаг 3: Мастер конфигурации"
 
 # Initialize configuration
 CONFIG_FILE="../.env"
 
 if [ -f "$CONFIG_FILE" ] && [ "$FORCE_RECONFIG" != "true" ]; then
-    log_warning "Configuration file already exists"
-    if prompt_yes_no "Reconfigure?" "n"; then
+    log_warning "Файл конфигурации уже существует"
+    if prompt_yes_no "Переконфигурировать?" "n"; then
         backup_file "$CONFIG_FILE"
     else
-        log_info "Using existing configuration"
+        log_info "Используем существующую конфигурацию"
         exit 0
     fi
 fi
 
-log_info "This wizard will collect the necessary information for setup"
+log_info "Этот мастер соберет необходимую информацию для установки"
 echo ""
 
 # =============================================================================
 # Domain Configuration (Optional)
 # =============================================================================
 
-log_info "Domain Configuration (optional for local development)"
-if prompt_yes_no "Configure domain for production deployment?" "n"; then
+log_info "Конфигурация домена (опционально для локальной разработки)"
+if prompt_yes_no "Настроить домен для production?" "n"; then
     PRODUCTION_MODE=true
     
     while true; do
-        prompt_input "Enter your domain (e.g., example.com)" "" DOMAIN
+        prompt_input "Введите ваш домен (например, example.com)" "" DOMAIN
         if validate_domain "$DOMAIN"; then
             break
         else
-            log_error "Invalid domain format"
+            log_error "Неверный формат домена"
         fi
     done
     
     while true; do
-        prompt_input "Enter email for SSL certificates" "" ACME_EMAIL
+        prompt_input "Введите email для SSL сертификатов" "" ACME_EMAIL
         if validate_email "$ACME_EMAIL"; then
             break
         else
-            log_error "Invalid email format"
+            log_error "Неверный формат email"
         fi
     done
 else
@@ -65,28 +65,28 @@ fi
 # =============================================================================
 
 echo ""
-log_info "Telegram Bot Configuration"
-log_info "Get your bot token from: https://t.me/BotFather"
+log_info "Конфигурация Telegram бота"
+log_info "Получите токен бота здесь: https://t.me/BotFather"
 
 while [ -z "$TELEGRAM_TOKEN" ]; do
     prompt_input "Telegram Bot Token" "" TELEGRAM_TOKEN
     if [ -z "$TELEGRAM_TOKEN" ]; then
-        log_error "Bot token cannot be empty"
+        log_error "Токен бота не может быть пустым"
     fi
 done
 
 while [ -z "$BOT_USERNAME" ]; do
-    prompt_input "Bot Username (without @)" "" BOT_USERNAME
+    prompt_input "Bot Username (без @)" "" BOT_USERNAME
     if [ -z "$BOT_USERNAME" ]; then
-        log_error "Bot username cannot be empty"
+        log_error "Username бота не может быть пустым"
     fi
 done
 
-log_info "Get your Telegram ID from: https://t.me/userinfobot"
+log_info "Получите ваш Telegram ID здесь: https://t.me/userinfobot"
 while [ -z "$ADMIN_TELEGRAM_ID" ]; do
-    prompt_input "Your Telegram ID (admin)" "" ADMIN_TELEGRAM_ID
+    prompt_input "Ваш Telegram ID (админ)" "" ADMIN_TELEGRAM_ID
     if [ -z "$ADMIN_TELEGRAM_ID" ]; then
-        log_error "Telegram ID cannot be empty"
+        log_error "Telegram ID не может быть пустым"
     fi
 done
 
@@ -95,23 +95,23 @@ done
 # =============================================================================
 
 echo ""
-log_info "Admin Account Setup"
+log_info "Настройка аккаунта админа"
 
 while [ -z "$ADMIN_USERNAME" ]; do
     prompt_input "Admin username" "admin" ADMIN_USERNAME
 done
 
 while true; do
-    prompt_secure_input "Admin password (min 8 characters)" ADMIN_PASSWORD
+    prompt_secure_input "Пароль админа (минимум 8 символов)" ADMIN_PASSWORD
     if [ ${#ADMIN_PASSWORD} -lt 8 ]; then
-        log_error "Password must be at least 8 characters"
+        log_error "Пароль должен быть минимум 8 символов"
         continue
     fi
-    prompt_secure_input "Confirm admin password" ADMIN_PASSWORD_CONFIRM
+    prompt_secure_input "Подтвердите пароль" ADMIN_PASSWORD_CONFIRM
     if [ "$ADMIN_PASSWORD" == "$ADMIN_PASSWORD_CONFIRM" ]; then
         break
     else
-        log_error "Passwords don't match"
+        log_error "Пароли не совпадают"
     fi
 done
 
@@ -120,15 +120,15 @@ done
 # =============================================================================
 
 echo ""
-log_info "AI Model Configuration"
+log_info "Конфигурация AI модели"
 
-if prompt_yes_no "Use OpenAI API?" "y"; then
-    while [ -z "$OPENAI_KEY" ]; do
+if prompt_yes_no "Использовать OpenAI API?" "y"; then
+    while [ -z "$OPENAI_KEY" ]; then
         prompt_secure_input "OpenAI API Key" OPENAI_KEY
     done
     USE_OLLAMA=false
 else
-    log_info "Will use Ollama (local models)"
+    log_info "Будем использовать Ollama (локальные модели)"
     USE_OLLAMA=true
     OPENAI_KEY="sk-not-required"
 fi
@@ -138,7 +138,7 @@ fi
 # =============================================================================
 
 echo ""
-log_info "Generating secure secrets..."
+log_info "Генерируем безопасные секреты..."
 
 POSTGRES_PASSWORD=$(generate_password 32)
 REDIS_PASSWORD=$(generate_password 32)
@@ -146,14 +146,14 @@ QDRANT_API_KEY=$(generate_password 32)
 SECRET_KEY=$(generate_hex 32)
 WEBHOOK_SECRET=$(generate_hex 16)
 
-log_success "Secrets generated"
+log_success "Секреты сгенерированы"
 
 # =============================================================================
 # Save Configuration
 # =============================================================================
 
 echo ""
-log_info "Saving configuration..."
+log_info "Сохраняем конфигурацию..."
 
 cat > "$CONFIG_FILE" << EOF
 # AI Jarvis Configuration
@@ -208,5 +208,5 @@ CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
 CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/1
 EOF
 
-log_success "Configuration saved to $CONFIG_FILE"
+log_success "Конфигурация сохранена в $CONFIG_FILE"
 echo ""
