@@ -1,6 +1,7 @@
 """Database session management."""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
+from sqlalchemy import text
 from typing import AsyncGenerator
 from config import settings
 
