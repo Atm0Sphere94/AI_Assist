@@ -94,7 +94,7 @@ async def cmd_help(message: Message):
         "/help - Это сообщение"
     )
     
-    await message.answer(help_text)
+    await message.answer(help_text, reply_markup=get_main_menu_keyboard())
 
 
 @router.message(Command("menu"))
