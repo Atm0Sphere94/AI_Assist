@@ -3,8 +3,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from .workflow import AgentState, llm
 from db.session import async_session_factory
 from services.task_service import TaskService
-from db.models import User
-from sqlalchemy import select
+from services.user_service import get_or_create_user
 
 async def task_agent_node(state: AgentState) -> AgentState:
     """Handle task requests with database persistence."""
@@ -31,20 +30,18 @@ User Request: {user_request}
         
         # 2. Save to Database
         async with async_session_factory() as session:
-            result = await session.execute(select(User).limit(1))
-            user = result.scalar_one_or_none()
+            # Get or create user
+            user = await get_or_create_user(session, state["user_id"], state.get("context"))
             
-            if user:
-                task_service = TaskService(session)
-                task = await task_service.create_task(
-                    user_id=user.id,
-                    title=data["title"],
-                    description=data.get("description"),
-                    priority=data.get("priority", "medium")
-                )
-                response_text = f"✅ Задача добавлена!\n\n📝 **{task.title}**\nПриоритет: {task.priority}"
-            else:
-                response_text = "❌ Пользователь не найден."
+            task_service = TaskService(session)
+            task = await task_service.create_task(
+                user_id=user.id,
+                title=data["title"],
+                description=data.get("description"),
+                priority=data.get("priority", "medium")
+            )
+            response_text = f"✅ Задача добавлена!\n\n📝 **{task.title}**\nПриоритет: {task.priority}"
+
                 
     except Exception as e:
         response_text = f"❌ Ошибка при создании задачи: {str(e)}"

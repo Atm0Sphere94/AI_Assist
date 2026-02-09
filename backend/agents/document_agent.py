@@ -3,8 +3,7 @@ from .workflow import AgentState
 from db.session import async_session_factory
 from services.document_service import DocumentService
 from services.rag_service import RAGService
-from db.models import User
-from sqlalchemy import select
+from services.user_service import get_or_create_user
 
 async def document_agent_node(state: AgentState) -> AgentState:
     """Handle document processing requests."""
@@ -19,12 +18,8 @@ async def document_agent_node(state: AgentState) -> AgentState:
     
     try:
         async with async_session_factory() as session:
-            # Get user from DB
-            result = await session.execute(select(User).limit(1))
-            user = result.scalar_one_or_none()
-            
-            if not user:
-                return {**state, "messages": [AIMessage(content="❌ Ошибка: Пользователь не найден.")]}
+            # Get or create user
+            user = await get_or_create_user(session, state["user_id"], context)
 
             # 1. Create Document record
             doc_service = DocumentService(session)

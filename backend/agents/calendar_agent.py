@@ -4,8 +4,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from .workflow import AgentState, llm
 from db.session import async_session_factory
 from services.calendar_service import CalendarService
-from db.models import User
-from sqlalchemy import select
+from services.user_service import get_or_create_user
 
 async def calendar_agent_node(state: AgentState) -> AgentState:
     """Handle calendar requests with database persistence."""
@@ -38,24 +37,22 @@ User Request: {user_request}
         
         # 2. Save to Database
         async with async_session_factory() as session:
-            result = await session.execute(select(User).limit(1))
-            user = result.scalar_one_or_none()
+            # Get or create user
+            user = await get_or_create_user(session, state["user_id"], state.get("context"))
             
-            if user:
-                calendar_service = CalendarService(session)
-                start_time = datetime.fromisoformat(data["start_time"])
-                end_time = datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
-                
-                event = await calendar_service.create_event(
-                    user_id=user.id,
-                    title=data["title"],
-                    start_time=start_time,
-                    end_time=end_time,
-                    description=data.get("description")
-                )
-                response_text = f"📅 Событие запланировано!\n\n📌 **{event.title}**\n🕒 {event.start_time.strftime('%d.%m.%Y %H:%M')}"
-            else:
-                response_text = "❌ Пользователь не найден."
+            calendar_service = CalendarService(session)
+            start_time = datetime.fromisoformat(data["start_time"])
+            end_time = datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
+            
+            event = await calendar_service.create_event(
+                user_id=user.id,
+                title=data["title"],
+                start_time=start_time,
+                end_time=end_time,
+                description=data.get("description")
+            )
+            response_text = f"📅 Событие запланировано!\n\n📌 **{event.title}**\n🕒 {event.start_time.strftime('%d.%m.%Y %H:%M')}"
+
                 
     except Exception as e:
         response_text = f"❌ Ошибка календаря: {str(e)}"

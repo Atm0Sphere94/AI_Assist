@@ -2,8 +2,7 @@ from langchain_core.messages import AIMessage, SystemMessage
 from .workflow import AgentState, llm
 from db.session import async_session_factory
 from services.rag_service import RAGService
-from db.models import User
-from sqlalchemy import select
+from services.user_service import get_or_create_user
 
 async def rag_agent_node(state: AgentState) -> AgentState:
     """Handle knowledge base requests (RAG)."""
@@ -13,12 +12,8 @@ async def rag_agent_node(state: AgentState) -> AgentState:
     
     try:
         async with async_session_factory() as session:
-            # Get user from DB
-            result = await session.execute(select(User).limit(1))
-            user = result.scalar_one_or_none()
-            
-            if not user:
-                return {**state, "messages": [AIMessage(content="❌ Ошибка: Пользователь не найден.")]}
+            # Get or create user
+            user = await get_or_create_user(session, state["user_id"], state.get("context"))
             
             # 1. Search in RAG
             rag_service = RAGService(session)

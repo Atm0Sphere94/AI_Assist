@@ -3,8 +3,7 @@ from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from .workflow import AgentState, llm
 from db.session import async_session_factory
 from services.reminder_service import ReminderService
-from db.models import User
-from sqlalchemy import select
+from services.user_service import get_or_create_user
 
 async def reminder_agent_node(state: AgentState) -> AgentState:
     """Handle reminder requests with database persistence."""
@@ -42,28 +41,20 @@ User Request: {user_request}
         
         # 2. Save to Database
         async with async_session_factory() as session:
-            # TODO: Get actual user ID from state or context. For now, find by telegram_id if available, or use first user
-            # In a real app, state should contain user_id
+            # Get or create user
+            user = await get_or_create_user(session, state["user_id"], state.get("context"))
+
+            reminder_service = ReminderService(session)
+            remind_at = datetime.fromisoformat(data["remind_at"])
             
-            # Temporary: Get first user for MVP or create if none (should be handled by auth middleware)
-            result = await session.execute(select(User).limit(1))
-            user = result.scalar_one_or_none()
+            reminder = await reminder_service.create_reminder(
+                user_id=user.id,
+                title=data["title"],
+                remind_at=remind_at,
+                message=data.get("message")
+            )
             
-            if not user:
-                 # Fallback if no user exists (shouldn't happen in prod)
-                 response_text = "❌ Ошибка: Пользователь не найден в базе данных."
-            else:
-                reminder_service = ReminderService(session)
-                remind_at = datetime.fromisoformat(data["remind_at"])
-                
-                reminder = await reminder_service.create_reminder(
-                    user_id=user.id,
-                    title=data["title"],
-                    remind_at=remind_at,
-                    message=data.get("message")
-                )
-                
-                response_text = f"✅ Напоминание создано!\n\n📌 **{reminder.title}**\n🕒 {reminder.remind_at.strftime('%d.%m.%Y %H:%M')}"
+            response_text = f"✅ Напоминание создано!\n\n📌 **{reminder.title}**\n🕒 {reminder.remind_at.strftime('%d.%m.%Y %H:%M')}"
                 
     except Exception as e:
         response_text = f"❌ Не удалось создать напоминание: {str(e)}"
