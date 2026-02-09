@@ -1,5 +1,22 @@
 aiwind.ru {
-    reverse_proxy backend:8000
+    # API endpoints
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+    handle /docs {
+        reverse_proxy backend:8000
+    }
+    handle /redoc {
+        reverse_proxy backend:8000
+    }
+    handle /openapi.json {
+        reverse_proxy backend:8000
+    }
+
+    # Frontend (default)
+    handle {
+        reverse_proxy frontend:3000
+    }
     
     # Enable automatic HTTPS
     tls {
