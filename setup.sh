@@ -1,68 +1,55 @@
 #!/bin/bash
 
-# AI Jarvis Interactive Setup Script
-# Beautiful UI/UX with credential input and validation
+# ==================================
+# AI Jarvis - Interactive Setup Script
+# ==================================
 
 set -e  # Exit on error
 
-# Colors for beautiful output
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
-WHITE='\033[1;37m'
 NC='\033[0m' # No Color
-BOLD='\033[1m'
 
-# Unicode characters
-CHECK="✓"
-CROSS="✗"
-ARROW="➜"
-STAR="★"
-CLOCK="⏱"
-ROCKET="🚀"
-LOCK="🔐"
-KEY="🔑"
-BOT="🤖"
-BRAIN="🧠"
-DOCKER="🐳"
-DATABASE="🗄️"
-GEAR="⚙️"
+# Unicode symbols
+CHECK="${GREEN}✓${NC}"
+CROSS="${RED}✗${NC}"
+ARROW="${BLUE}→${NC}"
+STAR="${YELLOW}★${NC}"
+INFO="${CYAN}ℹ${NC}"
 
-# Print functions
+# ==================================
+# Helper Functions
+# ==================================
+
 print_header() {
     echo ""
-    echo -e "${PURPLE}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${PURPLE}${BOLD}║                                                            ║${NC}"
-    echo -e "${PURPLE}${BOLD}║${NC}          ${CYAN}${ROCKET}  AI JARVIS SETUP WIZARD  ${ROCKET}${NC}              ${PURPLE}${BOLD}║${NC}"
-    echo -e "${PURPLE}${BOLD}║                                                            ║${NC}"
-    echo -e "${PURPLE}${BOLD}║${NC}        ${WHITE}Telegram AI Assistant с Agentic Workflow${NC}      ${PURPLE}${BOLD}║${NC}"
-    echo -e "${PURPLE}${BOLD}║                                                            ║${NC}"
-    echo -e "${PURPLE}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${PURPLE}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${PURPLE}║${NC}          ${CYAN}AI JARVIS - INTERACTIVE SETUP${NC}            ${PURPLE}║${NC}"
+    echo -e "${PURPLE}║${NC}   ${YELLOW}Personal AI Assistant with Telegram & Web${NC}      ${PURPLE}║${NC}"
+    echo -e "${PURPLE}╚════════════════════════════════════════════════════════╝${NC}"
     echo ""
 }
 
 print_step() {
-    echo -e "\n${CYAN}${BOLD}${ARROW} $1${NC}\n"
+    echo -e "\n${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${CYAN}$1${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
 print_success() {
-    echo -e "${GREEN}${CHECK} $1${NC}"
+    echo -e "${CHECK} ${GREEN}$1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}${CROSS} $1${NC}"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
+    echo -e "${CROSS} ${RED}$1${NC}"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ $1${NC}"
-}
 
 print_progress() {
     local current=$1
@@ -170,214 +157,181 @@ main() {
         echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "   ${CYAN}Как получить:${NC}"
         echo -e "   1. Откройте Telegram и найдите ${WHITE}@BotFather${NC}"
-        echo -e "   2. Отправьте команду ${WHITE}/newbot${NC}"
-        echo -e "   3. Следуйте инструкциям для создания бота"
-        echo -e "   4. Скопируйте токен (формат: ${YELLOW}1234567890:ABC...${NC})"
-        echo ""
-        
-        while true; do
-            echo -n -e "   ${KEY} Введите Telegram Bot Token: ${NC}"
-            read -s telegram_token
-            echo ""
-            
-            if [ -z "$telegram_token" ]; then
-                print_error "Токен не может быть пустым!"
-                continue
-            fi
-            
-            if validate_telegram_token "$telegram_token"; then
-                print_success "Telegram токен валиден!"
-                break
-            else
-                print_error "Неверный формат токена!"
-                echo -e "   ${YELLOW}Токен должен быть в формате: 1234567890:ABC-DEF...${NC}"
-            fi
-        done
-        
-        echo ""
-        
-        # OpenAI API Key
-        echo -e "${BOLD}${BRAIN} OpenAI API Key${NC}"
-        echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "   ${CYAN}Как получить:${NC}"
-        echo -e "   1. Перейдите на ${WHITE}https://platform.openai.com${NC}"
-        echo -e "   2. Зарегистрируйтесь или войдите в аккаунт"
-        echo -e "   3. Перейдите в ${WHITE}API Keys${NC} раздел"
-        echo -e "   4. Нажмите ${WHITE}Create new secret key${NC}"
-        echo -e "   5. Скопируйте ключ (формат: ${YELLOW}sk-proj-...${NC} или ${YELLOW}sk-...${NC})"
-        echo ""
-        
-        while true; do
-            echo -n -e "   ${KEY} Введите OpenAI API Key: ${NC}"
-            read -s openai_key
-            echo ""
-            
-            if [ -z "$openai_key" ]; then
-                print_error "API ключ не может быть пустым!"
-                continue
-            fi
-            
-            if validate_openai_key "$openai_key"; then
-                print_success "OpenAI ключ валиден!"
-                break
-            else
-                print_error "Неверный формат ключа!"
-                echo -e "   ${YELLOW}Ключ должен начинаться с 'sk-' или 'sk-proj-'${NC}"
-            fi
-        done
-        
-        echo ""
-        
-        # Optional settings
-        print_step "${GEAR} Дополнительные настройки (опционально)"
-        
-        echo -n -e "   ${CYAN}Webhook URL (нажмите Enter для пропуска):${NC} "
-        read webhook_url
-        
-        echo -n -e "   ${CYAN}OpenAI Model (по умолчанию gpt-4-turbo-preview):${NC} "
-        read openai_model
-        openai_model=${openai_model:-gpt-4-turbo-preview}
-        
-        # Generate secret key
-        secret_key=$(openssl rand -hex 32)
-        
-        # Create .env file
-        print_step "📝 Создание конфигурационного файла"
-        
-        cat > .env << EOF
-# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN=${telegram_token}
-TELEGRAM_WEBHOOK_URL=${webhook_url}
-TELEGRAM_WEBHOOK_SECRET=$(openssl rand -hex 16)
-
-# OpenAI Configuration
-OPENAI_API_KEY=${openai_key}
-OPENAI_MODEL=${openai_model}
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-
-# Database Configuration
-DATABASE_URL=postgresql+asyncpg://jarvis:jarvis_secure_password@postgres:5432/ai_jarvis
-DATABASE_POOL_SIZE=20
-DATABASE_MAX_OVERFLOW=0
-
-# Redis Configuration
-REDIS_URL=redis://redis:6379/0
-
-# Qdrant Vector Database
-QDRANT_URL=http://qdrant:6333
-QDRANT_API_KEY=
-QDRANT_COLLECTION_NAME=knowledge_base
-
-# Application Settings
-SECRET_KEY=${secret_key}
-DEBUG=True
-LOG_LEVEL=INFO
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
-
-# File Storage
-UPLOAD_DIR=/app/uploads
-MAX_UPLOAD_SIZE=104857600
-
-# Celery Configuration
-CELERY_BROKER_URL=redis://redis:6379/0
-CELERY_RESULT_BACKEND=redis://redis:6379/1
-EOF
-        
-        print_success "Конфигурация сохранена в .env"
-    fi
-    
-    # Docker setup
-    print_step "${DOCKER} Запуск Docker контейнеров"
-    echo ""
-    
-    echo -e "${BLUE}Загрузка и запуск сервисов...${NC}"
-    docker-compose up -d > /tmp/docker-setup.log 2>&1 &
-    docker_pid=$!
-    
-    spinner $docker_pid
-    wait $docker_pid
-    
-    if [ $? -eq 0 ]; then
-        print_success "Docker контейнеры запущены"
+    if command -v docker-compose &> /dev/null || docker compose version &> /dev/null; then
+        print_success "Docker Compose is installed"
     else
-        print_error "Ошибка при запуске Docker"
-        echo -e "${YELLOW}Логи ошибки сохранены в /tmp/docker-setup.log${NC}"
+        print_error "Docker Compose is not installed"
         exit 1
     fi
-    
-    # Wait for services
-    print_step "${CLOCK} Ожидание готовности сервисов"
-    echo ""
-    
-    services=("postgres" "redis" "qdrant" "backend")
-    total=${#services[@]}
-    current=0
-    
-    for service in "${services[@]}"; do
-        ((current++))
-        print_progress $current $total
-        sleep 2
-    done
-    echo -e "\n"
-    print_success "Все сервисы готовы к работе!"
-    
-    # Initialize database
-    print_step "${DATABASE} Инициализация базы данных"
-    echo ""
-    
-    echo -e "${BLUE}Создание таблиц и расширений...${NC}"
-    docker exec ai_jarvis_backend python init_db.py > /tmp/db-init.log 2>&1
-    
-    if [ $? -eq 0 ]; then
-        print_success "База данных инициализирована"
+
+    # Check Node.js for frontend
+    if command -v node &> /dev/null; then
+        NODE_VERSION=$(node -v)
+        print_success "Node.js is installed ($NODE_VERSION)"
     else
-        print_warning "Возможны проблемы с инициализацией БД"
-        echo -e "${YELLOW}Проверьте логи: /tmp/db-init.log${NC}"
+        print_warning "Node.js not found - required for frontend"
+        print_info "Install from: https://nodejs.org/"
+        read -p "Continue anyway? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
     fi
-    
-    # Health check
-    print_step "🏥 Проверка здоровья сервисов"
-    echo ""
-    
-    sleep 3
-    
-    # Check API health
-    if curl -s http://localhost:8000/health | grep -q "healthy"; then
-        print_success "API сервер работает"
+
+    print_step "Step 2: Collect Configuration"
+
+    # Create .env if doesn't exist
+    if [ ! -f .env ]; then
+        cp .env.example .env
+        print_success "Created .env file from template"
+    fi
+
+    # Telegram Bot Token
+    print_info "You can get your bot token from: ${BLUE}https://t.me/BotFather${NC}"
+    read -p "Enter your Telegram Bot Token: " TELEGRAM_TOKEN
+    if [ ! -z "$TELEGRAM_TOKEN" ]; then
+        sed -i.bak "s|TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$TELEGRAM_TOKEN|" .env
+        print_success "Telegram bot token saved"
+    fi
+
+    # Bot Username
+    read -p "Enter your Telegram Bot Username (without @): " BOT_USERNAME
+    if [ ! -z "$BOT_USERNAME" ]; then
+        sed -i.bak "s|TELEGRAM_BOT_USERNAME=.*|TELEGRAM_BOT_USERNAME=$BOT_USERNAME|" .env
+        print_success "Bot username saved"
+    fi
+
+    # Your Telegram ID (for admin)
+    print_info "Get your Telegram ID from: ${BLUE}https://t.me/userinfobot${NC}"
+    read -p "Enter YOUR Telegram ID (for admin access): " ADMIN_TELEGRAM_ID
+    if [ ! -z "$ADMIN_TELEGRAM_ID" ]; then
+        sed -i.bak "s|YOUR_TELEGRAM_ID|$ADMIN_TELEGRAM_ID|" .env
+        print_success "Admin Telegram ID saved"
+    fi
+
+    # OpenAI API Key
+    print_info "Optional: For GPT-4. Get key from: ${BLUE}https://platform.openai.com/api-keys${NC}"
+    read -p "Enter your OpenAI API Key (or press Enter to skip): " OPENAI_KEY
+    if [ ! -z "$OPENAI_KEY" ]; then
+        sed -i.bak "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$OPENAI_KEY|" .env
+        print_success "OpenAI API key saved"
+    fi
+
+    # Ollama configuration
+    print_info "Do you want to use Ollama (local AI models) instead of OpenAI?"
+    read -p "Use Ollama? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        sed -i.bak "s|USE_OLLAMA=.*|USE_OLLAMA=true|" .env
+        print_success "Ollama enabled"
+        print_info "Don't forget to install Ollama and pull models:"
+        print_info "  brew install ollama  # macOS"
+        print_info "  ollama pull dolphin-mixtral"
+    fi
+
+    # Webhook URL (optional for production)
+    read -p "Enter webhook URL (optional, for production): " WEBHOOK_URL
+    if [ ! -z "$WEBHOOK_URL" ]; then
+        sed -i.bak "s|TELEGRAM_WEBHOOK_URL=.*|TELEGRAM_WEBHOOK_URL=$WEBHOOK_URL|" .env
+        print_success "Webhook URL saved"
+    fi
+
+    print_step "Step 3: Frontend Configuration"
+
+    if [ -d "frontend" ]; then
+        # Frontend .env.local
+        if [ ! -f frontend/.env.local ]; then
+            cat > frontend/.env.local << EOF
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_BOT_USERNAME=$BOT_USERNAME
+NEXT_PUBLIC_ADMIN_TELEGRAM_ID=$ADMIN_TELEGRAM_ID
+EOF
+            print_success "Created frontend/.env.local"
+        fi
+        
+        # Install frontend dependencies
+        print_info "Installing frontend dependencies..."
+        if command -v npm &> /dev/null; then
+            (cd frontend && npm install > /dev/null 2>&1 &)
+            spinner $!
+            print_success "Frontend dependencies installed"
+        else
+            print_warning "npm not found - skipping frontend setup"
+        fi
     else
-        print_warning "API сервер недоступен (может потребоваться время на запуск)"
+        print_warning "Frontend directory not found - skipping"
     fi
-    
-    # Success message
+
+    print_step "Step 4: Docker Setup"
+
+    print_info "Building Docker images..."
+    docker-compose build > /dev/null 2>&1 &
+    spinner $!
+    print_success "Docker images built"
+
+    print_info "Starting services..."
+    docker-compose up -d > /dev/null 2>&1
+    print_success "Services started"
+
+    # Wait for services to be ready
+    print_info "Waiting for services to be ready..."
+    sleep 10
+
+    print_step "Step 5: Database Initialization"
+
+    print_info "Initializing database..."
+    docker-compose exec -T backend python init_db.py > /dev/null 2>&1
+    print_success "Database initialized"
+
+    print_step "Step 6: Create Admin User"
+
+    print_info "To create an admin user, you need to:"
+    print_info "1. Login via Telegram bot or web interface first"
+    print_info "2. Then run: docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID"
     echo ""
-    echo -e "${GREEN}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}${BOLD}║                                                            ║${NC}"
-    echo -e "${GREEN}${BOLD}║${NC}              ${STAR}${STAR}${STAR}  УСТАНОВКА ЗАВЕРШЕНА!  ${STAR}${STAR}${STAR}${NC}              ${GREEN}${BOLD}║${NC}"
+    print_warning "After first login, create admin with:"
+    echo -e "${YELLOW}    docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID${NC}"
+
+    print_step "✨ Setup Complete! ✨"
+
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                                                            ║${NC}"
+    echo -e "${GREEN}║${NC}              ${STAR}${STAR}${STAR}  УСТАНОВКА ЗАВЕРШЕНА!  ${STAR}${STAR}${STAR}${NC}              ${GREEN}${BOLD}║${NC}"
     echo -e "${GREEN}${BOLD}║                                                            ║${NC}"
     echo -e "${GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    
-    # Service URLs
-    print_info "Сервисы запущены и доступны:"
+
+    print_success "Services are running!"
     echo ""
-    echo -e "   ${CYAN}${BOLD}FastAPI Docs:${NC}    ${WHITE}http://localhost:8000/docs${NC}"
-    echo -e "   ${CYAN}${BOLD}API Health:${NC}      ${WHITE}http://localhost:8000/health${NC}"
-    echo -e "   ${CYAN}${BOLD}Qdrant UI:${NC}       ${WHITE}http://localhost:6333/dashboard${NC}"
+    echo -e "${CYAN}Access Points:${NC}"
+    echo -e "  ${ARROW} Web Interface:    ${BLUE}http://localhost:3000${NC}"
+    echo -e "  ${ARROW} API Documentation: ${BLUE}http://localhost:8000/docs${NC}"
+    echo -e "  ${ARROW} Telegram Bot:     ${BLUE}@$BOT_USERNAME${NC}"
     echo ""
-    
-    # Next steps
-    echo -e "${YELLOW}${BOLD}📋 Следующие шаги:${NC}"
+
+    echo -e "${CYAN}Next Steps:${NC}"
+    echo -e "  1. ${ARROW} Visit ${BLUE}http://localhost:3000${NC}"
+    echo -e "  2. ${ARROW} Login with Telegram"
+    echo -e "  3. ${ARROW} Create admin: ${YELLOW}docker-compose exec backend python create_admin.py $ADMIN_TELEGRAM_ID${NC}"
+    echo -e "  4. ${ARROW} Start chatting with your AI assistant!"
     echo ""
-    echo -e "   ${GREEN}1.${NC} Откройте Telegram и найдите вашего бота"
-    echo -e "   ${GREEN}2.${NC} Отправьте команду ${WHITE}/start${NC}"
-    echo -e "   ${GREEN}3.${NC} Начните общаться с AI ассистентом!"
+
+    echo -e "${CYAN}Useful Commands:${NC}"
+    echo -e "  ${ARROW} View logs:        ${YELLOW}docker-compose logs -f${NC}"
+    echo -e "  ${ARROW} Stop services:    ${YELLOW}docker-compose down${NC}"
+    echo -e "  ${ARROW} Restart:          ${YELLOW}docker-compose restart${NC}"
+    echo -e "  ${ARROW} Update:           ${YELLOW}git pull && docker-compose up -d --build${NC}"
     echo ""
-    echo -e "${CYAN}${BOLD}🔧 Полезные команды:${NC}"
+
+    print_info "For detailed documentation, see:"
+    print_info "  • QUICKSTART.md"
+    print_info "  • CLOUD_STORAGE_GUIDE.md"
+    print_info "  • UNCENSORED_MODELS.md"
     echo ""
-    echo -e "   ${WHITE}docker-compose logs -f backend${NC}     - Просмотр логов"
-    echo -e "   ${WHITE}docker-compose ps${NC}                  - Статус контейнеров"
-    echo -e "   ${WHITE}docker-compose down${NC}                - Остановить все"
-    echo -e "   ${WHITE}docker-compose restart backend${NC}     - Перезапустить backend"
+
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}  Happy chatting with AI Jarvis! 🤖✨${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     echo -e "${PURPLE}${BOLD}📖 Документация:${NC}"
     echo ""
