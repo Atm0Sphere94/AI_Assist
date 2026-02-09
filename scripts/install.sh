@@ -55,7 +55,7 @@ bash "$SCRIPT_DIR/01_system_preparation.sh"
 # Step 2: Docker Installation
 bash "$SCRIPT_DIR/02_install_docker.sh"
 
- Step 3: Configuration Wizard
+# Step 3: Configuration Wizard
 bash "$SCRIPT_DIR/03_configuration_wizard.sh"
 
 # Install frontend dependencies
