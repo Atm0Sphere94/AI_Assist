@@ -1,4 +1,4 @@
-aiwind.ru {
+app.aiwind.ru {
     # API endpoints
     handle /api/* {
         reverse_proxy backend:8000
@@ -40,9 +40,4 @@ aiwind.ru {
         output file /var/log/caddy/access.log
         level INFO
     }
-}
-
-# Redirect www to non-www
-www.aiwind.ru {
-    redir https://aiwind.ru{uri} permanent
 }
