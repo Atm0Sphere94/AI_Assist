@@ -1,26 +1,53 @@
 from langchain_core.messages import AIMessage
-from .workflow import AgentState, llm, SystemMessage
+from .workflow import AgentState
+from db.session import async_session_factory
+from services.document_service import DocumentService
+from services.rag_service import RAGService
+from db.models import User
+from sqlalchemy import select
 
 async def document_agent_node(state: AgentState) -> AgentState:
     """Handle document processing requests."""
-    messages = state["messages"]
+    context = state.get("context", {})
+    file_path = context.get("file_path")
     
-    system_prompt = """Ты агент обработки документов AI ассистента Jarvis.
-Твоя задача - помогать с анализом файлов.
-
-В данный момент ты работаешь в режиме MVP.
-Если пользователь загрузил файл, подтверди получение.
-
-Формат ответа:
-"📄 Документ получен. Индексация и поиск по документам настраиваются."
-"""
+    if not file_path:
+        return {
+            **state,
+            "messages": [AIMessage(content="⚠️ Пожалуйста, отправьте мне файл для обработки (PDF, DOCX, TXT).")]
+        }
     
-    response = await llm.ainvoke([
-        SystemMessage(content=system_prompt),
-        *messages
-    ])
+    try:
+        async with async_session_factory() as session:
+            # Get user from DB
+            result = await session.execute(select(User).limit(1))
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                return {**state, "messages": [AIMessage(content="❌ Ошибка: Пользователь не найден.")]}
+
+            # 1. Create Document record
+            doc_service = DocumentService(session)
+            document = await doc_service.create_document(
+                user_id=user.id,
+                file_path=file_path,
+                original_filename=context.get("file_name", "unknown"),
+                metadata={"mime_type": context.get("mime_type")}
+            )
+            
+            # 2. Index in RAG
+            rag_service = RAGService(session)
+            indexed = await rag_service.index_document(document.id)
+            
+            if indexed:
+                response_text = f"✅ Документ **{document.original_filename}** успешно обработан и добавлен в базу знаний!\nТеперь вы можете задавать вопросы по его содержанию."
+            else:
+                response_text = f"⚠️ Документ **{document.original_filename}** сохранен, но не удалось проиндексировать текст. Возможно, формат не поддерживается или файл пуст."
+                
+    except Exception as e:
+        response_text = f"❌ Ошибка при обработке документа: {str(e)}"
     
     return {
         **state,
-        "messages": [response]
+        "messages": [AIMessage(content=response_text)]
     }

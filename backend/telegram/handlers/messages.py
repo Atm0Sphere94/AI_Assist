@@ -56,3 +56,55 @@ async def message_handler(message: Message, state: FSMContext):
             "Попробуйте ещё раз или используйте меню.",
             reply_markup=get_main_menu_keyboard()
         )
+
+
+@router.message(F.document)
+async def document_handler(message: Message, state: FSMContext):
+    """Handle incoming documents."""
+    user_id = message.from_user.id
+    document = message.document
+    
+    # Show upload action
+    await message.bot.send_chat_action(message.chat.id, "upload_document")
+    
+    try:
+        # Create upload directory if not exists
+        import os
+        from config import settings
+        os.makedirs(settings.upload_dir, exist_ok=True)
+        
+        # Determine file path
+        # Use document.file_name or generate one if missing
+        filename = document.file_name or f"doc_{document.file_id}"
+        file_path = os.path.join(settings.upload_dir, f"{user_id}_{filename}")
+        
+        # Download file
+        bot = message.bot
+        file = await bot.get_file(document.file_id)
+        await bot.download_file(file.file_path, file_path)
+        
+        # Prepare context with file info
+        state_data = await state.get_data()
+        context = {
+            "chat_id": message.chat.id,
+            "username": message.from_user.username,
+            "first_name": message.from_user.first_name,
+            "file_path": file_path,
+            "file_name": filename,
+            "mime_type": document.mime_type,
+            "file_size": document.file_size,
+            **state_data
+        }
+        
+        # Process through workflow with "document" intent hint
+        response = await process_message(
+            user_id=user_id,
+            message=f"Upload document: {filename}",  # Synthetic message to trigger classification
+            context=context
+        )
+        
+        await message.answer(response)
+        
+    except Exception as e:
+        logger.error(f"Error handling document: {e}", exc_info=True)
+        await message.answer("❌ Ошибка при загрузке документа.")

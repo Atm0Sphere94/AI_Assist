@@ -56,6 +56,12 @@ async def router_node(state: AgentState) -> AgentState:
     
     if not last_message or not hasattr(last_message, 'content'):
         return {**state, "intent": "general"}
+        
+    # Check for file upload in context
+    context = state.get("context", {})
+    if context.get("file_path"):
+        logger.info(f"File upload detected: {context.get('file_name')}")
+        return {**state, "intent": "document"}
     
     user_message = last_message.content
     
