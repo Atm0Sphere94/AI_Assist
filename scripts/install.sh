@@ -46,6 +46,21 @@ done
 log_success "All scripts found"
 echo ""
 
+# Check if already installed
+if [ -f ".env" ] && docker ps &> /dev/null 2>&1; then
+    log_warning "Обнаружена существующая установка AI Jarvis"
+    if prompt_yes_no "Остановить и очистить перед переустановкой?" "y"; then
+        log_info "Останавливаем сервисы..."
+        docker compose down -v 2>/dev/null || true
+        log_info "Очищаем Docker образы..."
+        docker rmi $(docker images -q 'ai_assist-*' 2>/dev/null) 2>/dev/null || true
+        log_success "Очистка завершена"
+    else
+        log_info "Продолжаем установку без очистки"
+    fi
+    echo ""
+fi
+
 # Run installation steps
 export DEBIAN_FRONTEND=noninteractive
 

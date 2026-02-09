@@ -15,7 +15,8 @@ source "$SCRIPT_DIR/utils.sh"
 log_step "Шаг 3: Мастер конфигурации"
 
 # Initialize configuration
-CONFIG_FILE="../.env"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_FILE="$PROJECT_ROOT/.env"
 
 if [ -f "$CONFIG_FILE" ] && [ "$FORCE_RECONFIG" != "true" ]; then
     log_warning "Файл конфигурации уже существует"
