@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # =============================================================================
-# AI Jarvis - System Preparation
+# AI Jarvis - Подготовка системы
 # =============================================================================
-# Step 1: Checks system requirements and prepares the environment
+# Шаг 1: Проверка системных требований и подготовка окружения
 # =============================================================================
 
 set -e
@@ -13,31 +13,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/utils.sh"
 
 log_header
-log_step "Step 1: System Preparation"
+log_step "Шаг 1: Подготовка системы"
 
-# Check if running as root
+# Проверка запуска от root
 if ! check_root; then
     exit 1
 fi
 
-# Detect OS
-log_info "Detecting operating system..."
+# Определение ОС
+log_info "Определяем операционную систему..."
 if ! check_os; then
     exit 1
 fi
 
-# Check system resources
-log_info "Checking system resources..."
+# Проверка ресурсов системы
+log_info "Проверяем системные ресурсы..."
 check_system_resources
 
-# Check network connectivity
-log_info "Checking network connectivity..."
+# Проверка сетевого подключения
+log_info "Проверяем подключение к интернету..."
 if ! check_network; then
     exit 1
 fi
 
-# Update system packages
-log_info "Updating system packages..."
+# Обновление системных пакетов
+log_info "Обновляем системные пакеты..."
 if [ "$PKG_MANAGER" == "apt" ]; then
     apt-get update -qq
     apt-get upgrade -y -qq
@@ -63,5 +63,5 @@ elif [ "$PKG_MANAGER" == "yum" ]; then
         make
 fi
 
-log_success "System preparation complete"
+log_success "Подготовка системы завершена"
 echo ""
