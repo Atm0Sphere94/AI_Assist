@@ -13,7 +13,7 @@ from db.cloud_storage_models import (
     CloudStorageType,
     SyncStatus
 )
-from tasks.cloud_sync_tasks import sync_yandex_disk, sync_obsidian_vault
+from tasks import cloud_sync_tasks
 from services.yandex_disk_service import YandexDiskService
 
 router = APIRouter(prefix="/api/cloud-storage", tags=["cloud-storage"])
@@ -32,7 +32,7 @@ class CloudStorageCreate(BaseModel):
     process_documents: bool = True
     file_filters: Optional[List[str]] = None
     exclude_patterns: Optional[List[str]] = None
-    metadata: Optional[dict] = None
+    meta_data: Optional[dict] = None
 
 
 class CloudStorageResponse(BaseModel):
@@ -128,7 +128,7 @@ async def connect_cloud_storage(
         process_documents=storage_data.process_documents,
         file_filters=storage_data.file_filters,
         exclude_patterns=storage_data.exclude_patterns,
-        metadata=storage_data.metadata
+        meta_data=storage_data.meta_data
     )
     
     db.add(storage)
@@ -211,7 +211,7 @@ async def trigger_sync(
     
     # Trigger background task
     if storage.storage_type == CloudStorageType.YANDEX_DISK:
-        task = sync_yandex_disk.delay(storage_id, job.id)
+        task = cloud_sync_tasks.sync_yandex_disk.delay(storage_id, job.id)
         job.celery_task_id = task.id
     elif storage.storage_type == CloudStorageType.ICLOUD:
         # Find associated vault
@@ -223,7 +223,7 @@ async def trigger_sync(
         )
         vault = result.scalar_one_or_none()
         if vault:
-            task = sync_obsidian_vault.delay(vault.id, job.id)
+            task = cloud_sync_tasks.sync_obsidian_vault.delay(vault.id, job.id)
             job.celery_task_id = task.id
     
     await db.commit()
