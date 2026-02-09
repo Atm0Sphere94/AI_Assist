@@ -107,11 +107,88 @@ async def telegram_login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_profile(
+async def get_current_user_info(
     current_user: User = Depends(get_current_user)
 ):
-    """Get current authenticated user profile."""
-    return current_user
+    """Get current user information."""
+    return UserResponse(
+        id=current_user.id,
+        telegram_id=current_user.telegram_id,
+        username=current_user.username or current_user.admin_username,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        is_admin=current_user.is_admin
+    )
+
+
+class AdminLoginRequest(BaseModel):
+    """Admin login request."""
+    username: str
+    password: str
+
+
+@router.post("/admin/login", response_model=AuthResponse)
+async def admin_login(
+    request: AdminLoginRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Admin login with username and password.
+    
+    Alternative to Telegram auth for admin users.
+    """
+    
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    
+    # Find user by admin username
+    result = await db.execute(
+        select(User).where(User.admin_username == request.username)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+    
+    # Verify password
+    if not user.admin_password_hash or not pwd_context.verify(
+        request.password, user.admin_password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password"
+        )
+    
+    # Check if user is admin
+    if not user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    # Generate JWT token
+    token = create_access_token(
+        data={
+            "sub": str(user.id),
+            "telegram_id": user.telegram_id,
+            "is_admin": user.is_admin
+        }
+    )
+    
+    return AuthResponse(
+        access_token=token,
+        token_type="bearer",
+        user=UserResponse(
+            id=user.id,
+            telegram_id=user.telegram_id,
+            username=user.admin_username,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_admin=user.is_admin
+        )
+    )
 
 
 @router.post("/logout")
