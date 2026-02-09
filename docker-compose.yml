@@ -157,7 +157,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=https://app.aiwind.ru/api
+      - NEXT_PUBLIC_API_URL=https://app.aiwind.ru
       - NEXT_PUBLIC_BOT_USERNAME=v1tar_bot
       - NEXT_PUBLIC_ADMIN_TELEGRAM_ID=7956463747
     networks:
