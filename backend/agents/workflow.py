@@ -1,0 +1,206 @@
+"""LangGraph-based agentic workflow for intelligent task routing."""
+import logging
+from typing import Literal, TypedDict, Annotated
+from langgraph.graph import StateGraph, START, END, MessagesState
+from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from config import settings
+
+logger = logging.getLogger(__name__)
+
+# Initialize LLM
+llm = ChatOpenAI(
+    model=settings.openai_model,
+    api_key=settings.openai_api_key,
+    temperature=0.7,
+)
+
+
+class AgentState(TypedDict):
+    """State for the agentic workflow."""
+    messages: Annotated[list, add_messages]
+    user_id: int
+    intent: str | None
+    context: dict
+
+
+async def intent_router(state: AgentState) -> Literal["task_agent", "calendar_agent", "reminder_agent", "image_agent", "document_agent", "rag_agent", "general_response"]:
+    """
+    Determine user intent and route to appropriate agent.
+    
+    Uses LLM to classify user's message into one of the following intents:
+    - task: Task management (create, update, list tasks)
+    - calendar: Calendar events
+    - reminder: Reminders
+    - image: Image  generation
+    - document: Document processing
+    - knowledge: Knowledge base queries
+    - general: General conversation
+    """
+    messages = state["messages"]
+    last_message = messages[-1] if messages else None
+    
+    if not last_message or not hasattr(last_message, 'content'):
+        return "general_response"
+    
+    user_message = last_message.content
+    
+    # System prompt for intent classification
+    system_prompt = """Ты классификатор намерений пользователя. Определи намерение и верни ТОЛЬКО одно слово:
+
+- task: если пользователь хочет создать задачу, обновить задачу, посмотреть список задач, управлять списками дел
+- calendar: если пользователь хочет создать событие в календаре, встречу, запланировать что-то на конкретную дату/время
+- reminder: если пользователь просит напомнить о чём-то, создать напоминание
+- image: если пользователь просит нарисовать, сгенерировать, создать изображение/картинку
+- document: если пользователь загружает документ или просит обработать файл
+- knowledge: если пользователь задаёт вопрос, требующий поиска в базе знаний или документах
+- general: обычная беседа, приветствие, или неясное намерение
+
+Примеры:
+"Создай задачу купить молоко" -> task
+"Добавь встречу завтра в 15:00" -> calendar
+"Напомни мне через час" -> reminder
+"Нарисуй кота" -> image
+"Что ты знаешь о Python?" -> knowledge
+"Привет, как дела?" -> general
+
+Сообщение пользователя: """
+    
+    try:
+        response = await llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_message)
+        ])
+        
+        intent = response.content.strip().lower()
+        logger.info(f"Detected intent: {intent} for message: {user_message[:50]}...")
+        
+        # Map intent to agent
+        intent_mapping = {
+            "task": "task_agent",
+            "calendar": "calendar_agent",
+            "reminder": "reminder_agent",
+            "image": "image_agent",
+            "document": "document_agent",
+            "knowledge": "rag_agent",
+            "general": "general_response",
+        }
+        
+        agent = intent_mapping.get(intent, "general_response")
+        
+        # Update state with detected intent
+        state["intent"] = intent
+        
+        return agent
+        
+    except Exception as e:
+        logger.error(f"Error in intent routing: {e}", exc_info=True)
+        return "general_response"
+
+
+async def general_response_node(state: AgentState) -> AgentState:
+    """Handle general conversation."""
+    messages = state["messages"]
+    
+    system_prompt = """Ты AI ассистент Jarvis. Отвечай дружелюбно и помогай пользователю. 
+Если пользователь здоровается, поприветствуй его и кратко расскажи о своих возможностях.
+Если вопрос неясен, вежливо попроси уточнить."""
+    
+    try:
+        response = await llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            *messages
+        ])
+        
+        return {
+            **state,
+            "messages": [response]
+        }
+    except Exception as e:
+        logger.error(f"Error in general response: {e}", exc_info=True)
+        return {
+            **state,
+            "messages": [AIMessage(content="Извините, произошла ошибка. Попробуйте ещё раз.")]
+        }
+
+
+# Build the workflow graph
+def build_workflow() -> StateGraph:
+    """Build and compile the LangGraph workflow."""
+    workflow = StateGraph(AgentState)
+    
+    # Add nodes
+    workflow.add_node("intent_router", intent_router)
+    workflow.add_node("general_response", general_response_node)
+    # Other agent nodes will be added as we implement them
+    # workflow.add_node("task_agent", task_agent_node)
+    # workflow.add_node("calendar_agent", calendar_agent_node)
+    # workflow.add_node("reminder_agent", reminder_agent_node)
+    # workflow.add_node("image_agent", image_agent_node)
+    # workflow.add_node("document_agent", document_agent_node)
+    # workflow.add_node("rag_agent", rag_agent_node)
+    
+    # Add edges
+    workflow.add_edge(START, "intent_router")
+    
+    # Conditional routing from intent_router
+    workflow.add_conditional_edges(
+        "intent_router",
+        lambda state: state.get("intent", "general"),
+        {
+            "task_agent": "general_response",  # Placeholder until implemented
+            "calendar_agent": "general_response",
+            "reminder_agent": "general_response",
+            "image_agent": "general_response",
+            "document_agent": "general_response",
+            "rag_agent": "general_response",
+            "general_response": "general_response",
+        }
+    )
+    
+    # All agents end after processing
+    workflow.add_edge("general_response", END)
+    
+    # Compile the workflow
+    return workflow.compile()
+
+
+# Global workflow instance
+agent_workflow = build_workflow()
+
+
+async def process_message(user_id: int, message: str, context: dict = None) -> str:
+    """
+    Process a user message through the agentic workflow.
+    
+    Args:
+        user_id: Telegram user ID
+        message: User's message
+        context: Optional context dictionary
+        
+    Returns:
+        AI assistant's response
+    """
+    initial_state = {
+        "messages": [HumanMessage(content=message)],
+        "user_id": user_id,
+        "intent": None,
+        "context": context or {},
+    }
+    
+    try:
+        result = await agent_workflow.ainvoke(initial_state)
+        
+        # Extract the last AI message
+        messages = result.get("messages", [])
+        if messages:
+            last_message = messages[-1]
+            if hasattr(last_message, 'content'):
+                return last_message.content
+        
+        return "Извините, я не смог обработать ваш запрос."
+        
+    except Exception as e:
+        logger.error(f"Error processing message: {e}", exc_info=True)
+        return "Произошла ошибка при обработке вашего сообщения. Попробуйте позже."
