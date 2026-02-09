@@ -34,8 +34,20 @@ if check_docker && check_docker_compose; then
         if ! docker ps &> /dev/null 2>&1; then
             log_info "Запускаем dockerd вручную..."
             pkill dockerd 2>/dev/null || true
-            nohup dockerd > /var/log/docker.log 2>&1 &
-            sleep 5
+            
+            # Определяем путь к dockerd
+            DOCKERD_PATH="/usr/bin/dockerd"
+            if [ ! -x "$DOCKERD_PATH" ]; then
+                DOCKERD_PATH=$(which dockerd 2>/dev/null || echo "")
+            fi
+            
+            if [ -n "$DOCKERD_PATH" ] && [ -x "$DOCKERD_PATH" ]; then
+                nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
+                sleep 5
+            else
+                log_error "dockerd не найден"
+                exit 1
+            fi
         fi
     fi
 else
@@ -64,8 +76,27 @@ else
         pkill dockerd 2>/dev/null || true
         sleep 2
         
+        # Определяем путь к dockerd
+        DOCKERD_PATH=""
+        if [ -x "/usr/bin/dockerd" ]; then
+            DOCKERD_PATH="/usr/bin/dockerd"
+        elif [ -x "/usr/local/bin/dockerd" ]; then
+            DOCKERD_PATH="/usr/local/bin/dockerd"
+        elif command -v dockerd &> /dev/null; then
+            DOCKERD_PATH=$(which dockerd)
+        fi
+        
+        if [ -z "$DOCKERD_PATH" ]; then
+            log_error "dockerd не найден!"
+            log_info "Поиск установленных файлов Docker..."
+            find /usr -name "dockerd" 2>/dev/null || true
+            exit 1
+        fi
+        
+        log_info "Используем dockerd: $DOCKERD_PATH"
+        
         # Запускаем dockerd в фоне
-        nohup dockerd > /var/log/docker.log 2>&1 &
+        nohup $DOCKERD_PATH > /var/log/docker.log 2>&1 &
         
         # Ждём запуска
         log_info "Ожидаем запуска Docker..."
