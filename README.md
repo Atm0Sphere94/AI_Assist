@@ -57,10 +57,33 @@
 git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && sudo bash install.sh
 ```
 
+<<<<<<< HEAD
 This will automatically:
 - ✅ Install `make` if not present
 - ✅ Run the full installation via `make install`
 - ✅ Set up all services and dependencies
+=======
+### One-Line Update (for existing installation)
+
+```bash
+cd ~/AI_Assist && git pull && sudo bash install.sh
+```
+
+This will automatically:
+- ✅ Install `make` if not present
+- ✅ Run the full installation via `make install`
+- ✅ Set up all services and dependencies:
+
+**Option 2: With Make (if installed)**
+```bash
+git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && sudo make install
+```
+
+**Option 3: Curl one-liner**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Atm0Sphere94/AI_Assist/main/quick-install.sh | bash
+```
+>>>>>>> main
 
 This single command will:
 - ✅ Clone the repository
