@@ -56,6 +56,24 @@ services:
     networks:
       - jarvis_network
 
+  # Caddy reverse proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: ai_jarvis_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./logs:/var/log/caddy
+    networks:
+      - jarvis_network
+    depends_on:
+      - backend
+
   # FastAPI Backend
   backend:
     build:
@@ -146,6 +164,8 @@ volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   jarvis_network:
