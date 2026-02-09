@@ -62,14 +62,5 @@ passlib[bcrypt]==1.7.4
 pytz==2024.1
 python-dateutil==2.8.2
 
-# Testing
-pytest==8.0.0
-pytest-asyncio==0.23.4
-pytest-cov==4.1.0
-httpx==0.26.0
-faker==22.6.0
-
-# Development
-black==24.1.1
-flake8==7.0.0
-mypy==1.8.0
+# Note: Testing and development dependencies moved to requirements-dev.txt
+# Use pip install -r requirements-dev.txt for local development
