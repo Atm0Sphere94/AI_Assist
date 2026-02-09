@@ -1,19 +1,58 @@
+#!/bin/bash
+
+# =============================================================================
 # AI Jarvis - Quick Install
+# =============================================================================
+# Automatically installs make if needed, then runs modular installation
+# Usage: sudo bash install.sh
+# =============================================================================
 
-One-command installation for AI Jarvis personal assistant:
+set -e
 
-```bash
-git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && sudo make install
-```
+echo ""
+echo "🚀 AI Jarvis - Installation"
+echo "============================"
+echo ""
 
-The installer will:
-- ✅ Check system requirements  
-- ✅ Install system updates
-- ✅ Install Docker if needed
-- ✅ Run interactive configuration wizard
-- ✅ Install frontend dependencies
-- ✅ Deploy all services
-- ✅ Initialize database
-- ✅ Create admin user
+# Check if running as root
+if [[ "$EUID" -ne 0 ]]; then
+    echo "❌ This script must be run as root or with sudo"
+    echo "   Please run: sudo bash install.sh"
+    exit 1
+fi
 
-After installation, use `make help` to see all available commands.
+# Change to script directory
+cd "$(dirname "$0")"
+
+# Install make if not present
+if ! command -v make &> /dev/null; then
+    echo "📦 Installing make..."
+    
+    # Detect OS and install make
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            ubuntu|debian)
+                apt-get update -qq
+                apt-get install -y -qq make
+                ;;
+            centos|rhel|rocky|almalinux)
+                yum install -y -q make
+                ;;
+            *)
+                echo "❌ Unsupported OS. Please install 'make' manually and try again."
+                exit 1
+                ;;
+        esac
+    fi
+    
+    echo "✅ Make installed"
+fi
+
+# Now run installation via make
+echo ""
+echo "🚀 Starting installation via make..."
+echo ""
+
+make install
+
