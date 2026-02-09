@@ -80,8 +80,23 @@ async def document_handler(message: Message, state: FSMContext):
         
         # Download file
         bot = message.bot
-        file = await bot.get_file(document.file_id)
-        await bot.download_file(file.file_path, file_path)
+        file = None
+        import asyncio
+        
+        # Retry mechanism for get_file
+        for attempt in range(3):
+            try:
+                file = await bot.get_file(document.file_id, request_timeout=60)
+                break
+            except Exception as e:
+                if attempt == 2:
+                    logger.error(f"Failed to get file info after 3 attempts: {e}")
+                    raise e
+                await asyncio.sleep(1)
+        
+        # Download with timeout
+        if file:
+            await bot.download_file(file.file_path, file_path, timeout=60)
         
         # Prepare context with file info
         state_data = await state.get_data()
