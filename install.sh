@@ -1,30 +1,19 @@
-#!/bin/bash
+# AI Jarvis - Quick Install
 
-# ==================================
-# AI Jarvis - One-Command Installer
-# ==================================
-# Usage: ./install.sh
-# ==================================
+One-command installation for AI Jarvis personal assistant:
 
-set -e
+```bash
+git clone https://github.com/Atm0Sphere94/AI_Assist.git && cd AI_Assist && sudo make install
+```
 
-echo ""
-echo "🚀 AI Jarvis - Quick Install"
-echo "================================"
-echo ""
+The installer will:
+- ✅ Check system requirements  
+- ✅ Install system updates
+- ✅ Install Docker if needed
+- ✅ Run interactive configuration wizard
+- ✅ Install frontend dependencies
+- ✅ Deploy all services
+- ✅ Initialize database
+- ✅ Create admin user
 
-# Make setup.sh executable
-chmod +x setup.sh
-
-# Run setup
-./setup.sh
-
-echo ""
-echo "✅ Installation complete!"
-echo ""
-echo "Next commands:"
-echo "  make start    - Start all services"
-echo "  make stop     - Stop all services"
-echo "  make logs     - View logs"
-echo "  make restart  - Restart services"
-echo ""
+After installation, use `make help` to see all available commands.
