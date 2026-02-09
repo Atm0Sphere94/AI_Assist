@@ -96,6 +96,32 @@ async def router_node(state: AgentState) -> AgentState:
         return {**state, "intent": "general"}
 
 
+async def general_response_node(state: AgentState) -> AgentState:
+    """Handle general conversation."""
+    messages = state["messages"]
+    
+    system_prompt = """Ты AI ассистент Jarvis. Отвечай дружелюбно и помогай пользователю. 
+Если пользователь здоровается, поприветствуй его и кратко расскажи о своих возможностях.
+Если вопрос неясен, вежливо попроси уточнить."""
+    
+    try:
+        response = await llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            *messages
+        ])
+        
+        return {
+            **state,
+            "messages": [response]
+        }
+    except Exception as e:
+        logger.error(f"Error in general response: {e}", exc_info=True)
+        return {
+            **state,
+            "messages": [AIMessage(content="Извините, произошла ошибка. Попробуйте ещё раз.")]
+        }
+
+
 # Conditional edge function (must be sync)
 def route_to_agent(state: AgentState) -> str:
     """Route to appropriate agent based on state intent."""
