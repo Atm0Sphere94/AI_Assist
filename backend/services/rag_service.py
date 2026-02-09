@@ -77,8 +77,10 @@ class RAGService:
             
             # Read document content
             try:
-                with open(document.file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                content = await self._extract_text(document.file_path, document.original_filename)
+                if not content:
+                    logger.warning(f"Extracted content is empty for document {document_id}")
+                    return False
             except Exception as e:
                 logger.error(f"Error reading document {document_id}: {e}")
                 return False
@@ -109,7 +111,7 @@ class RAGService:
                         "text": chunk,
                         "filename": document.original_filename,
                         "user_id": document.user_id,
-                        "file_type": document.file_type
+                        "file_type": document.document_type or "unknown"
                     }
                 )
                 points.append(point)
@@ -125,6 +127,36 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error indexing document {document_id}: {e}", exc_info=True)
             return False
+
+    async def _extract_text(self, file_path: str, filename: str) -> str:
+        """Extract text from file based on extension."""
+        import os
+        ext = os.path.splitext(filename)[1].lower()
+        
+        if ext == '.pdf':
+            return self._extract_pdf(file_path)
+        elif ext in ['.docx', '.doc']:
+            return self._extract_docx(file_path)
+        else:
+            # Default to text
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+
+    def _extract_pdf(self, file_path: str) -> str:
+        """Extract text from PDF."""
+        import PyPDF2
+        text = ""
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+        return text
+
+    def _extract_docx(self, file_path: str) -> str:
+        """Extract text from DOCX."""
+        import docx
+        doc = docx.Document(file_path)
+        return "\n".join([para.text for para in doc.paragraphs])
     
     async def search(
         self,

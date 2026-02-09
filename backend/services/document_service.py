@@ -80,6 +80,12 @@ class DocumentService:
     async def get_document(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
         return await self.db.get(Document, document_id)
+        
+    async def list_documents(self, user_id: int, limit: int = 10, offset: int = 0) -> list[Document]:
+        """List user documents."""
+        query = select(Document).where(Document.user_id == user_id).order_by(Document.created_at.desc()).limit(limit).offset(offset)
+        result = await self.db.execute(query)
+        return result.scalars().all()
     
     async def delete_document(self, document_id: int) -> bool:
         """Delete document by ID."""

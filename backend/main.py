@@ -30,6 +30,8 @@ async def lifespan(app: FastAPI):
     # Register Telegram handlers
     dp.include_router(basic.router)
     dp.include_router(messages.router)
+    from telegram.handlers import documents
+    dp.include_router(documents.router)
     logger.info("Telegram handlers registered")
     
     await on_startup()
