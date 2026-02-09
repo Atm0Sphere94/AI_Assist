@@ -142,29 +142,12 @@ def build_workflow() -> StateGraph:
     """Build and compile the LangGraph workflow."""
     workflow = StateGraph(AgentState)
     
-    # Add nodes (NOT the router - it's used for routing only)
+    # Add nodes
     workflow.add_node("general_response", general_response_node)
-    # Other agent nodes will be added as we implement them
-    # workflow.add_node("task_agent", task_agent_node)
-    # workflow.add_node("calendar_agent", calendar_agent_node)
-    # workflow.add_node("reminder_agent", reminder_agent_node)
-    # workflow.add_node("image_agent", image_agent_node)
-    # workflow.add_node("document_agent", document_agent_node)
-    # workflow.add_node("rag_agent", rag_agent_node)
+    # TODO: Add other agent nodes when implemented
     
-    # Use conditional entry point for routing
-    workflow.set_conditional_entry_point(
-        intent_router,
-        {
-            "task_agent": "general_response",  # Placeholder until implemented
-            "calendar_agent": "general_response",
-            "reminder_agent": "general_response",
-            "image_agent": "general_response",
-            "document_agent": "general_response",
-            "rag_agent": "general_response",
-            "general_response": "general_response",
-        }
-    )
+    # Simple entry point - just go to general_response
+    workflow.set_entry_point("general_response")
     
     # Set finish point
     workflow.set_finish_point("general_response")
