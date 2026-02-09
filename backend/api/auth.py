@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from typing import Optional
+from passlib.context import CryptContext
 
 from db import get_db
 from db.models import User
@@ -42,6 +43,13 @@ class UserResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class AuthResponse(BaseModel):
+    """Authentication response with token and user."""
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
 
 
 @router.post("/telegram/login", response_model=TokenResponse)
