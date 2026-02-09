@@ -35,4 +35,4 @@ celery_app.conf.beat_schedule = {
 }
 
 # Auto-discover tasks
-celery_app.autodiscover_tasks(['tasks', 'tasks.cloud_sync_tasks'])
+celery_app.autodiscover_tasks(['tasks', 'tasks.cloud_sync_tasks', 'tasks.reminders'])
