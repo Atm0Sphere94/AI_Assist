@@ -50,7 +50,7 @@ async def send_message(
     }
     
     response = await process_message(
-        user_id=current_user.id,
+        user_id=current_user.telegram_id,
         message=request.message,
         context=context
     )
