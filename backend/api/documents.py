@@ -34,8 +34,20 @@ async def list_documents(
     service = DocumentService(db)
     return await service.list_documents(current_user.id, limit=100)
 
+from fastapi import BackgroundTasks
+from services.rag_service import RAGService
+
+# ... imports ...
+
+async def background_index_document(document_id: int, db_session_maker):
+    """Background task for indexing document."""
+    async with db_session_maker() as db:
+        service = RAGService(db)
+        await service.index_document(document_id)
+
 @router.post("/upload")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -56,7 +68,12 @@ async def upload_document(
         original_filename=file.filename or "unknown"
     )
     
-    return {"message": "Document uploaded", "document_id": document.id}
+    # Trigger indexing in background
+    # We need a new session for the background task
+    from db.session import async_session_maker
+    background_tasks.add_task(background_index_document, document.id, async_session_maker)
+    
+    return {"message": "Document uploaded and indexing started", "document_id": document.id}
 
 @router.delete("/{document_id}")
 async def delete_document(

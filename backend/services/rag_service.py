@@ -121,6 +121,11 @@ class RAGService:
                 points=points
             )
             
+            # Update document status
+            document.is_indexed = True
+            await self.db.commit()
+            await self.db.refresh(document)
+            
             logger.info(f"Indexed document {document_id}: {len(chunks)} chunks")
             return True
             
