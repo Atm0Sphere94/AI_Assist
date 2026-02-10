@@ -100,10 +100,15 @@ class RAGService:
             embeddings = self.embeddings.embed_documents(chunks)
             
             # Index in Qdrant
+            import uuid
+            
             points = []
             for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                # Generate deterministic UUID for point ID
+                point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{document_id}_{idx}"))
+                
                 point = PointStruct(
-                    id=f"{document_id}_{idx}",
+                    id=point_id,
                     vector=embedding,
                     payload={
                         "document_id": document_id,
