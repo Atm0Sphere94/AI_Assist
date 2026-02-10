@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-import os
 import shutil
 from datetime import datetime
+from pydantic import BaseModel
+from typing import Optional
 
 from db import get_db
 from db.models import User, Document
@@ -75,7 +76,3 @@ async def delete_document(
         raise HTTPException(status_code=500, detail="Failed to delete document")
         
     return {"message": "Document deleted"}
-
-# Make sure Pydantic model is available for response_model
-from pydantic import BaseModel
-from typing import Optional
