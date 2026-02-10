@@ -8,6 +8,11 @@ const inter = Inter({ subsets: ["latin", "cyrillic"] });
 export const metadata: Metadata = {
     title: "AI Jarvis - Your Personal AI Assistant",
     description: "Telegram AI Assistant with Knowledge Base",
+    icons: {
+        icon: "/icon.png",
+        shortcut: "/favicon.ico",
+        apple: "/icon.png",
+    },
 };
 
 export default function RootLayout({
