@@ -194,7 +194,6 @@ class RAGService:
             query_embedding = self.embeddings.embed_query(query)
             
             # Search in Qdrant
-            logger.info(f"Searching Qdrant for user_id: {user_id} with query: {query}")
             search_results = self.qdrant_client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
@@ -205,9 +204,6 @@ class RAGService:
                 },
                 limit=limit
             )
-            logger.info(f"Qdrant search found {len(search_results)} results")
-            for res in search_results:
-                logger.info(f"Result score: {res.score}, Payload user_id: {res.payload.get('user_id')}")
             
             # Format results
             results = []
