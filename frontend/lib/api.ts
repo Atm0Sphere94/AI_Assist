@@ -64,3 +64,35 @@ export const cloudStorageApi = {
         return data;
     },
 };
+
+// Settings API
+export const settingsApi = {
+    getProfile: async () => {
+        const { data } = await api.get("/api/settings/profile");
+        return data;
+    },
+    updateProfile: async (profileData: any) => {
+        const { data } = await api.put("/api/settings/profile", profileData);
+        return data;
+    },
+};
+
+// Tasks API
+export const tasksApi = {
+    list: async () => {
+        const { data } = await api.get("/api/tasks/");
+        return data;
+    },
+    create: async (taskData: any) => {
+        const { data } = await api.post("/api/tasks/", taskData);
+        return data;
+    },
+    update: async (taskId: number, taskData: any) => {
+        const { data } = await api.put(`/api/tasks/${taskId}`, taskData);
+        return data;
+    },
+    delete: async (taskId: number) => {
+        const { data } = await api.delete(`/api/tasks/${taskId}`);
+        return data;
+    },
+};
