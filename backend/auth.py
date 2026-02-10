@@ -50,9 +50,15 @@ def verify_telegram_auth(auth_data: dict) -> bool:
     
     # Create data-check-string
     auth_data_copy = auth_data.copy()
-    del auth_data_copy['hash']
+    if 'hash' in auth_data_copy:
+        del auth_data_copy['hash']
     
-    data_check_arr = [f"{k}={v}" for k, v in sorted(auth_data_copy.items())]
+    # Filter out None values and ensure all values are strings
+    data_check_arr = []
+    for k, v in sorted(auth_data_copy.items()):
+        if v is not None:
+            data_check_arr.append(f"{k}={v}")
+            
     data_check_string = "\n".join(data_check_arr)
     
     # Create secret key from bot token
@@ -77,6 +83,12 @@ def verify_telegram_auth(auth_data: dict) -> bool:
         return False
     
     return True
+
+    # Debug logging (can be removed later)
+    # import logging
+    # logger = logging.getLogger(__name__)
+    # logger.info(f"Auth check string: {data_check_string}")
+    # logger.info(f"Calculated: {calculated_hash}, Received: {check_hash}")
 
 
 async def get_current_user(
