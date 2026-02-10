@@ -121,11 +121,15 @@ from api.auth import router as auth_router
 from api.chat import router as chat_router
 from api.settings import router as settings_router
 from api.tasks import router as tasks_router
+from api.calendar import router as calendar_router
+from api.documents import router as documents_router
 
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(settings_router, prefix="/api/settings")
 app.include_router(tasks_router, prefix="/api/tasks")
+app.include_router(calendar_router, prefix="/api/calendar")
+app.include_router(documents_router, prefix="/api/documents")
 app.include_router(cloud_storage_router)
 app.include_router(obsidian_router)
 
