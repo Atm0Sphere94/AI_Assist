@@ -137,7 +137,8 @@ class YandexDiskService:
         self,
         path: str = "/",
         file_extensions: Optional[List[str]] = None,
-        exclude_patterns: Optional[List[str]] = None
+        exclude_patterns: Optional[List[str]] = None,
+        included_paths: Optional[List[str]] = None
     ) -> List[Dict]:
         """
         Recursively list all files in directory and subdirectories.
@@ -146,6 +147,7 @@ class YandexDiskService:
             path: Starting directory path
             file_extensions: Filter by file extensions (e.g., ['.pdf', '.docx'])
             exclude_patterns: Patterns to exclude
+            included_paths: Only include files within these paths (if set)
             
         Returns:
             List of file metadata dictionaries
@@ -161,6 +163,17 @@ class YandexDiskService:
             items = result["_embedded"]["items"]
             
             for item in items:
+                # Check if path is within included_paths
+                if included_paths:
+                    is_included = False
+                    for include_path in included_paths:
+                        # Check if item path starts with include_path or include_path starts with item path (for partial traversal)
+                        if item["path"].replace("disk:", "").startswith(include_path) or include_path.startswith(item["path"].replace("disk:", "")):
+                            is_included = True
+                            break
+                    if not is_included:
+                        continue
+
                 # Skip if matches exclude pattern
                 if exclude_patterns:
                     skip = False
@@ -176,7 +189,8 @@ class YandexDiskService:
                     subdir_files = await self.list_files_recursively(
                         item["path"],
                         file_extensions,
-                        exclude_patterns
+                        exclude_patterns,
+                        included_paths
                     )
                     all_files.extend(subdir_files)
                 else:

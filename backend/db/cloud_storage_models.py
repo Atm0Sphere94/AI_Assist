@@ -42,6 +42,7 @@ class CloudStorage(Base):
     
     # Sync settings
     sync_path = Column(String(1000), default="/")  # Path to sync from
+    included_paths = Column(JSON, default=["/"])  # List of paths to sync (selective sync)
     sync_enabled = Column(Boolean, default=True)
     auto_sync = Column(Boolean, default=True)  # Auto-sync on changes
     sync_interval_minutes = Column(Integer, default=60)  # Sync interval

@@ -11,7 +11,115 @@ type CloudStorage = {
     last_sync_at?: string;
     last_sync_status?: string;
     total_files_synced: number;
+    included_paths?: string[];
 };
+
+// Folder Browser Component
+function FolderBrowser({
+    apiToken,
+    storageType,
+    storageId,
+    selectedPaths,
+    onSelectionChange
+}: {
+    apiToken?: string,
+    storageType?: string,
+    storageId?: number,
+    selectedPaths: string[],
+    onSelectionChange: (paths: string[]) => void
+}) {
+    const [currentPath, setCurrentPath] = useState("/");
+    const [items, setItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [history, setHistory] = useState<string[]>([]);
+
+    useEffect(() => {
+        loadFolder(currentPath);
+    }, [currentPath]);
+
+    const loadFolder = async (path: string) => {
+        try {
+            setLoading(true);
+            const data = await cloudStorageApi.listRemoteFiles({
+                path,
+                storage_type: storageType,
+                access_token: apiToken,
+                storage_id: storageId
+            });
+            setItems(data.items);
+        } catch (error) {
+            console.error("Failed to list files:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleNavigate = (path: string) => {
+        setHistory([...history, currentPath]);
+        setCurrentPath(path);
+    };
+
+    const handleBack = () => {
+        if (history.length > 0) {
+            const prev = history[history.length - 1];
+            setHistory(history.slice(0, -1));
+            setCurrentPath(prev);
+        }
+    };
+
+    const toggleSelection = (path: string) => {
+        if (selectedPaths.includes(path)) {
+            onSelectionChange(selectedPaths.filter(p => p !== path));
+        } else {
+            onSelectionChange([...selectedPaths, path]);
+        }
+    };
+
+    return (
+        <div className="border rounded-lg p-4 mt-4 h-64 flex flex-col dark:border-gray-700">
+            <div className="flex items-center gap-2 mb-2 pb-2 border-b dark:border-gray-700">
+                <button
+                    onClick={handleBack}
+                    disabled={history.length === 0}
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded disabled:opacity-30"
+                >
+                    ⬅️
+                </button>
+                <span className="text-sm font-mono truncate flex-1 dark:text-gray-300">{currentPath}</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-1">
+                {loading ? (
+                    <div className="flex justify-center p-4">
+                        <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="text-center text-gray-400 text-sm py-4">Папка пуста</div>
+                ) : (
+                    items.map((item) => (
+                        <div key={item.path} className="flex items-center gap-2 p-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded group">
+                            <input
+                                type="checkbox"
+                                checked={selectedPaths.includes(item.path)}
+                                onChange={() => toggleSelection(item.path)}
+                                className="rounded border-gray-300"
+                            />
+                            <span
+                                onClick={() => item.type === 'dir' && handleNavigate(item.path)}
+                                className={`flex-1 text-sm cursor-pointer truncate ${item.type === 'dir' ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}
+                            >
+                                {item.type === 'dir' ? '📁' : '📄'} {item.name}
+                            </span>
+                        </div>
+                    ))
+                )}
+            </div>
+            <div className="mt-2 pt-2 border-t text-xs text-gray-500 dark:border-gray-700">
+                Выбрано папок: {selectedPaths.length}
+            </div>
+        </div>
+    );
+}
 
 export default function CloudStoragePage() {
     const [storages, setStorages] = useState<CloudStorage[]>([]);
@@ -23,6 +131,10 @@ export default function CloudStoragePage() {
         access_token: "",
     });
     const [connecting, setConnecting] = useState(false);
+
+    // New state for folder selection
+    const [showFolderBrowser, setShowFolderBrowser] = useState(false);
+    const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
 
     useEffect(() => {
         fetchStorages();
@@ -44,10 +156,17 @@ export default function CloudStoragePage() {
         e.preventDefault();
         try {
             setConnecting(true);
-            const created = await cloudStorageApi.connect(newStorage);
+            // Include selected paths in payload
+            const payload = {
+                ...newStorage,
+                included_paths: selectedFolders.length > 0 ? selectedFolders : ["/"]
+            };
+            const created = await cloudStorageApi.connect(payload);
             setStorages([...storages, created]);
             setShowConnectModal(false);
             setNewStorage({ storage_type: "yandex_disk", name: "", access_token: "" });
+            setSelectedFolders([]);
+            setShowFolderBrowser(false);
         } catch (error) {
             console.error("Failed to connect storage:", error);
             alert("Ошибка подключения! Проверьте токен.");
@@ -124,6 +243,14 @@ export default function CloudStoragePage() {
                                         {storage.last_sync_at ? new Date(storage.last_sync_at).toLocaleString() : "Никогда"}
                                     </span>
                                 </div>
+                                {storage.included_paths && storage.included_paths.length > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-500">Папки:</span>
+                                        <span className="font-medium dark:text-gray-300" title={storage.included_paths.join(', ')}>
+                                            {storage.included_paths.length} шт.
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex gap-2">
@@ -148,7 +275,7 @@ export default function CloudStoragePage() {
             {/* Connect Modal */}
             {showConnectModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Подключение хранилища</h2>
                         <form onSubmit={handleConnect} className="space-y-4">
                             <div>
@@ -179,20 +306,40 @@ export default function CloudStoragePage() {
                                 <label className="block text-sm font-medium mb-1 dark:text-gray-300">
                                     {newStorage.storage_type === 'yandex_disk' ? 'OAuth Token' : 'Credentials (JSON)'}
                                 </label>
-                                <input
-                                    type="password"
-                                    required
-                                    value={newStorage.access_token}
-                                    onChange={(e) => setNewStorage({ ...newStorage, access_token: e.target.value })}
-                                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
-                                    placeholder="Введите токен доступа..."
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="password"
+                                        required
+                                        value={newStorage.access_token}
+                                        onChange={(e) => setNewStorage({ ...newStorage, access_token: e.target.value })}
+                                        className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        placeholder="Введите токен..."
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowFolderBrowser(!showFolderBrowser)}
+                                        disabled={!newStorage.access_token}
+                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-sm transition-colors"
+                                    >
+                                        📁 Выбрать папки
+                                    </button>
+                                </div>
                                 <p className="text-xs text-gray-500 mt-1">
                                     {newStorage.storage_type === 'yandex_disk'
                                         ? 'Получите токен на https://oauth.yandex.ru/'
                                         : 'Введите учетные данные для доступа к iCloud.'}
                                 </p>
                             </div>
+
+                            {/* Folder Browsing Area */}
+                            {showFolderBrowser && (
+                                <FolderBrowser
+                                    apiToken={newStorage.access_token}
+                                    storageType={newStorage.storage_type}
+                                    selectedPaths={selectedFolders}
+                                    onSelectionChange={setSelectedFolders}
+                                />
+                            )}
 
                             <div className="flex justify-end gap-3 pt-4">
                                 <button

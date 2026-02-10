@@ -73,7 +73,8 @@ async def sync_yandex_disk(
             files = await yd_service.list_files_recursively(
                 path=storage.sync_path,
                 file_extensions=storage.file_filters,
-                exclude_patterns=storage.exclude_patterns
+                exclude_patterns=storage.exclude_patterns,
+                included_paths=storage.included_paths
             )
             
             job.total_files = len(files)

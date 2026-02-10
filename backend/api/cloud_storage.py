@@ -1,5 +1,5 @@
 """API endpoints for cloud storage management."""
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -32,6 +32,7 @@ class CloudStorageCreate(BaseModel):
     process_documents: bool = True
     file_filters: Optional[List[str]] = None
     exclude_patterns: Optional[List[str]] = None
+    included_paths: Optional[List[str]] = None
     meta_data: Optional[dict] = None
 
 
@@ -41,6 +42,7 @@ class CloudStorageResponse(BaseModel):
     storage_type: str
     name: str
     sync_path: str
+    included_paths: Optional[List[str]] = None
     sync_enabled: bool
     auto_sync: bool
     sync_interval_minutes: int
@@ -122,6 +124,7 @@ async def connect_cloud_storage(
         name=storage_data.name,
         access_token=storage_data.access_token,  # TODO: Encrypt
         sync_path=storage_data.sync_path,
+        included_paths=storage_data.included_paths or ["/"],
         sync_enabled=storage_data.sync_enabled,
         auto_sync=storage_data.auto_sync,
         sync_interval_minutes=storage_data.sync_interval_minutes,
@@ -136,6 +139,68 @@ async def connect_cloud_storage(
     await db.refresh(storage)
     
     return storage
+
+
+@router.get("/list-remote-files", response_model=Dict)
+async def list_remote_files(
+    storage_type: Optional[str] = None,
+    access_token: Optional[str] = None,
+    storage_id: Optional[int] = None,
+    path: str = "/",
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    List files and folders in remote storage.
+    
+    Can use either existing storage_id OR temporary credentials (storage_type + access_token).
+    This is used for the file browser UI during setup.
+    """
+    service = None
+    
+    # 1. Use existing storage if ID provided
+    if storage_id:
+        storage = await db.get(CloudStorage, storage_id)
+        if not storage or storage.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Storage not found")
+        
+        if storage.storage_type == CloudStorageType.YANDEX_DISK:
+            service = YandexDiskService(storage.access_token)
+            
+    # 2. Or use provided credentials (for setup wizard)
+    elif storage_type and access_token:
+        if storage_type == CloudStorageType.YANDEX_DISK:
+            service = YandexDiskService(access_token)
+    
+    else:
+        raise HTTPException(status_code=400, detail="Either storage_id or storage_type+access_token required")
+        
+    if not service:
+        raise HTTPException(status_code=400, detail="Unsupported storage type or invalid configuration")
+        
+    try:
+        # Fetch file list
+        files = await service.list_files(path=path, limit=1000)
+        
+        # Simplify response for UI
+        items = []
+        if "_embedded" in files:
+            for item in files["_embedded"]["items"]:
+                if item["type"] == "dir":
+                    items.append({
+                        "name": item["name"],
+                        "path": item["path"].replace("disk:", ""), # Normalize path
+                        "type": "dir",
+                        "has_subdirs": True # Assumption
+                    })
+        
+        # Sort: directories first, then alphabetically
+        items.sort(key=lambda x: x["name"])
+        
+        return {"items": items, "current_path": path}
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to list files: {str(e)}")
 
 
 @router.get("/list", response_model=List[CloudStorageResponse])
@@ -290,6 +355,7 @@ async def update_cloud_storage(
     sync_interval_minutes: Optional[int] = None,
     file_filters: Optional[List[str]] = None,
     exclude_patterns: Optional[List[str]] = None,
+    included_paths: Optional[List[str]] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -309,6 +375,8 @@ async def update_cloud_storage(
         storage.file_filters = file_filters
     if exclude_patterns is not None:
         storage.exclude_patterns = exclude_patterns
+    if included_paths is not None:
+        storage.included_paths = included_paths
     
     await db.commit()
     await db.refresh(storage)
