@@ -119,9 +119,13 @@ from api.cloud_storage import router as cloud_storage_router
 from api.obsidian import router as obsidian_router
 from api.auth import router as auth_router
 from api.chat import router as chat_router
+from api.settings import router as settings_router
+from api.tasks import router as tasks_router
 
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(settings_router, prefix="/api/settings")
+app.include_router(tasks_router, prefix="/api/tasks")
 app.include_router(cloud_storage_router)
 app.include_router(obsidian_router)
 
