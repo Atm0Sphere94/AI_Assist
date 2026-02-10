@@ -91,89 +91,67 @@ export const tasksApi = {
         const { data } = await api.put(`/api/tasks/${taskId}`, taskData);
         return data;
     },
-    // Calendar API
-    export const calendarApi = {
-        list: async (startDate?: string, endDate?: string) => {
-            const params = new URLSearchParams();
-            if (startDate) params.append("start_date", startDate);
-            if (endDate) params.append("end_date", endDate);
-            const { data } = await api.get(`/api/calendar/?${params.toString()}`);
-            return data;
-        },
-        create: async (eventData: any) => {
-            const { data } = await api.post("/api/calendar/", eventData);
-            return data;
-        },
-        delete: async (eventId: number) => {
-            const { data } = await api.delete(`/api/calendar/${eventId}`);
-            return data;
-        },
-    };
+    delete: async (taskId: number) => {
+        const { data } = await api.delete(`/api/tasks/${taskId}`);
+        return data;
+    },
+    toggle: async (taskId: number) => {
+        const { data } = await api.post(`/api/tasks/${taskId}/toggle`);
+        return data;
+    }
+};
 
-    // Documents API
-    export const documentsApi = {
-        list: async () => {
-            const { data } = await api.get("/api/documents/");
-            return data;
-        },
-        upload: async (file: File) => {
-            const formData = new FormData();
-            formData.append("file", file);
-            const { data } = await api.post("/api/documents/upload", formData, {
-                headers: {
-                };
+// Calendar API
+export const calendarApi = {
+    list: async (startDate?: string, endDate?: string) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append("start_date", startDate);
+        if (endDate) params.append("end_date", endDate);
+        const { data } = await api.get(`/api/calendar/?${params.toString()}`);
+        return data;
+    },
+    create: async (eventData: any) => {
+        const { data } = await api.post("/api/calendar/", eventData);
+        return data;
+    },
+    delete: async (eventId: number) => {
+        const { data } = await api.delete(`/api/calendar/${eventId}`);
+        return data;
+    },
+};
 
-                // Calendar API
-                export const calendarApi = {
-                    list: async (startDate?: string, endDate?: string) => {
-                        const params = new URLSearchParams();
-                        if (startDate) params.append("start_date", startDate);
-                        if (endDate) params.append("end_date", endDate);
-                        const { data } = await api.get(`/api/calendar/?${params.toString()}`);
-                        return data;
-                    },
-                    create: async (eventData: any) => {
-                        const { data } = await api.post("/api/calendar/", eventData);
-                        return data;
-                    },
-                    delete: async (eventId: number) => {
-                        const { data } = await api.delete(`/api/calendar/${eventId}`);
-                        return data;
-                    },
-                };
+// Documents API
+export const documentsApi = {
+    list: async () => {
+        const { data } = await api.get("/api/documents/");
+        return data;
+    },
+    upload: async (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const { data } = await api.post("/api/documents/upload", formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+        return data;
+    },
+    delete: async (documentId: number) => {
+        const { data } = await api.delete(`/api/documents/${documentId}`);
+        return data;
+    },
+};
 
-                // Documents API
-                export const documentsApi = {
-                    list: async () => {
-                        const { data } = await api.get("/api/documents/");
-                        return data;
-                    },
-                    upload: async (file: File) => {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const { data } = await api.post("/api/documents/upload", formData, {
-                            headers: {
-                                "Content-Type": "multipart/form-data",
-                            },
-                        });
-                        return data;
-                    },
-                    delete: async (documentId: number) => {
-                        const { data } = await api.delete(`/api/documents/${documentId}`);
-                        return data;
-                    },
-                };
-
-                // Knowledge Base API
-                export const knowledgeApi = {
-                    search: async (query: string) => {
-                        const params = new URLSearchParams();
-                        params.append("q", query);
-                        const { data } = await api.get(`/api/knowledge/search?${params.toString()}`);
-                        return data;
-                    },
-                    index: async (documentId: number) => {
-                        const { data } = await api.post(`/api/knowledge/index/${documentId}`);
-                        return data;
-                    },
-                };
+// Knowledge Base API
+export const knowledgeApi = {
+    search: async (query: string) => {
+        const params = new URLSearchParams();
+        params.append("q", query);
+        const { data } = await api.get(`/api/knowledge/search?${params.toString()}`);
+        return data;
+    },
+    index: async (documentId: number) => {
+        const { data } = await api.post(`/api/knowledge/index/${documentId}`);
+        return data;
+    },
+};
