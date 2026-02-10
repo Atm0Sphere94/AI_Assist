@@ -82,13 +82,14 @@ def verify_telegram_auth(auth_data: dict) -> bool:
     if current_time - auth_date > 86400:  # 24 hours
         return False
     
-    return True
-
     # Debug logging (can be removed later)
-    # import logging
-    # logger = logging.getLogger(__name__)
-    # logger.info(f"Auth check string: {data_check_string}")
-    # logger.info(f"Calculated: {calculated_hash}, Received: {check_hash}")
+    import logging
+    logger = logging.getLogger("uvicorn.error")
+    logger.info(f"Auth check string: {data_check_string}")
+    logger.info(f"Calculated: {calculated_hash}, Received: {check_hash}")
+    logger.info(f"Time diff: {current_time - auth_date}")
+
+    return True
 
 
 async def get_current_user(
