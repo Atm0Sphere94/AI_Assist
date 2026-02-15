@@ -50,13 +50,20 @@ function FolderBrowser({
         loadFolder(currentPath);
     }, [currentPath]);
 
+    // Helper to clean token
+    const sanitizeToken = (token?: string) => {
+        if (!token) return "";
+        // Remove trailing :line_number artifacts (e.g. :1) and whitespace
+        return token.replace(/:\d+$/, '').trim();
+    };
+
     const loadFolder = async (path: string) => {
         try {
             setLoading(true);
             const data = await cloudStorageApi.listRemoteFiles({
                 path,
                 storage_type: storageType,
-                access_token: apiToken?.trim(),
+                access_token: sanitizeToken(apiToken),
                 storage_id: storageId
             });
             setItems(data.items);
@@ -212,10 +219,14 @@ export default function CloudStoragePage() {
         e.preventDefault();
         try {
             setConnecting(true);
+
+            // Sanitize token (remove :1 artifacts from copy-paste)
+            const cleanToken = newStorage.access_token.replace(/:\d+$/, '').trim();
+
             // Include selected paths in payload
             const payload = {
                 ...newStorage,
-                access_token: newStorage.access_token.trim(),
+                access_token: cleanToken,
                 included_paths: selectedFolders.length > 0 ? selectedFolders : ["/"]
             };
             const created = await cloudStorageApi.connect(payload);
