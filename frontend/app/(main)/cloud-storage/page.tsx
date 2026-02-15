@@ -141,6 +141,12 @@ function SyncDetailsModal({
                                     )}
                                 </div>
                             ))
+                        ) : isSyncing ? (
+                            <div className="text-center py-8 text-blue-600 dark:text-blue-400 border-2 dashed border-blue-200 dark:border-blue-800 rounded-lg animate-pulse flex flex-col items-center gap-2">
+                                <div className="text-2xl">🔍</div>
+                                <div>Сканирование списка файлов...</div>
+                                <div className="text-xs opacity-75">Это может занять некоторое время</div>
+                            </div>
                         ) : (
                             <div className="text-center py-8 text-gray-400 border-2 dashed border-gray-200 dark:border-gray-700 rounded-lg">
                                 Нет активных операций
