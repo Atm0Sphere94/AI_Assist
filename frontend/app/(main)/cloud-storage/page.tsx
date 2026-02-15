@@ -357,7 +357,7 @@ export default function CloudStoragePage() {
                                     </div>
                                 </div>
                                 <span className={`px-2 py-1 rounded text-xs font-medium ${storage.sync_enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600'}`}>
-                                    {storage.sync_enabled ? 'Active' : 'Paused'}
+                                    {progress ? (storage.process_documents ? 'Indexing...' : 'Syncing...') : (storage.sync_enabled ? 'Active' : 'Paused')}
                                 </span>
                             </div>
 
