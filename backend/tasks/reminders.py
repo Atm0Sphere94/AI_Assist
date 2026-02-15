@@ -73,17 +73,8 @@ def check_reminders():
     Runs every minute.
     """
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        
-        loop.run_until_complete(process_reminders())
-        return "Reminders processed"
-    except RuntimeError:
-        # If loop is already running (unlikely for Celery worker but possible)
         asyncio.run(process_reminders())
-        return "Reminders processed (new loop)"
+        return "Reminders processed"
     except Exception as e:
         logger.error(f"Error in check_reminders task: {e}", exc_info=True)
         return f"Error: {e}"

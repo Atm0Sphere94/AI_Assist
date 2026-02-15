@@ -27,6 +27,144 @@ type SyncProgress = {
     };
 };
 
+// Sync Detail Modal
+function SyncDetailsModal({
+    storage,
+    onClose
+}: {
+    storage: CloudStorage,
+    onClose: () => void
+}) {
+    const [status, setStatus] = useState<any>(null);
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const data = await cloudStorageApi.getStatus(storage.id);
+                setStatus(data);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+
+        fetchStatus();
+        const interval = setInterval(fetchStatus, 2000);
+        return () => clearInterval(interval);
+    }, [storage.id]);
+
+    const handleClose = () => {
+        setVisible(false);
+        setTimeout(onClose, 300);
+    };
+
+    if (!status) return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 animate-pulse">
+                Loading...
+            </div>
+        </div>
+    );
+
+    const { current_job, progress, recent_files } = status;
+    const isSyncing = current_job?.status === 'in_progress';
+
+    return (
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 ${visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'}`}>
+                {/* Header */}
+                <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                            {storage.name}
+                            <span className={`text-xs px-2 py-1 rounded-full ${isSyncing ? 'bg-blue-100 text-blue-700 animate-pulse' : 'bg-gray-100 text-gray-600'}`}>
+                                {isSyncing ? 'SYNCING' : 'IDLE'}
+                            </span>
+                        </h2>
+                        <p className="text-sm text-gray-500">Детали синхронизации</p>
+                    </div>
+                    <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        ✕
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto flex-1">
+                    {/* Progress Card */}
+                    {isSyncing && progress && (
+                        <div className="mb-8 p-6 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800">
+                            <div className="flex justify-between items-end mb-2">
+                                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                    {progress.percent}%
+                                </span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {progress.current} / {progress.total} файлов
+                                </span>
+                            </div>
+                            <div className="w-full bg-blue-200 dark:bg-blue-900 rounded-full h-3 overflow-hidden">
+                                <div
+                                    className="bg-blue-600 h-full rounded-full transition-all duration-500 ease-out"
+                                    style={{ width: `${progress.percent}%` }}
+                                ></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4 mt-4 text-center">
+                                <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-sm">
+                                    <div className="text-xl font-bold text-green-500">{progress.files.processed}</div>
+                                    <div className="text-xs text-gray-500">Обработано</div>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-sm">
+                                    <div className="text-xl font-bold text-blue-500">{progress.files.new}</div>
+                                    <div className="text-xs text-gray-500">Новых</div>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-sm">
+                                    <div className="text-xl font-bold text-red-500">{progress.files.failed}</div>
+                                    <div className="text-xs text-gray-500">Ошибок</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Recent Activity */}
+                    <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                        <span>📋</span> Текущие операции
+                    </h3>
+                    <div className="space-y-2">
+                        {recent_files && recent_files.length > 0 ? (
+                            recent_files.map((file: any) => (
+                                <div key={file.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-100 dark:border-gray-700 hover:border-blue-200 transition-colors">
+                                    <div className={`p-2 rounded-full ${file.status === 'completed' ? 'bg-green-100 text-green-600' :
+                                        file.status === 'failed' ? 'bg-red-100 text-red-600' :
+                                            'bg-blue-100 text-blue-600 animate-pulse'
+                                        }`}>
+                                        {file.status === 'completed' ? '✓' : file.status === 'failed' ? '✕' : '⟳'}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-800 dark:text-gray-200 truncate" title={file.file_name}>
+                                            {file.file_name}
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate" title={file.file_path}>
+                                            {file.operation_type} • {new Date(file.created_at).toLocaleTimeString()}
+                                        </div>
+                                    </div>
+                                    {file.status === 'failed' && (
+                                        <div className="text-xs text-red-500 max-w-[150px] truncate" title={file.error_message}>
+                                            {file.error_message}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-8 text-gray-400 border-2 dashed border-gray-200 dark:border-gray-700 rounded-lg">
+                                Нет активных операций
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // Folder Browser Component
 function FolderBrowser({
     apiToken,
@@ -160,6 +298,7 @@ export default function CloudStoragePage() {
 
     // State for editing existing storage
     const [editingStorage, setEditingStorage] = useState<CloudStorage | null>(null);
+    const [selectedStorage, setSelectedStorage] = useState<CloudStorage | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [updating, setUpdating] = useState(false);
 
@@ -347,12 +486,16 @@ export default function CloudStoragePage() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {storages.map((storage) => (
-                        <div key={storage.id} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-transparent hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+                        <div
+                            key={storage.id}
+                            onClick={() => setSelectedStorage(storage)}
+                            className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-transparent hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer group"
+                        >
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-3">
-                                    <span className="text-3xl">{getIcon(storage.storage_type)}</span>
+                                    <span className="text-3xl transform group-hover:scale-110 transition-transform">{getIcon(storage.storage_type)}</span>
                                     <div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white">{storage.name}</h3>
+                                        <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{storage.name}</h3>
                                         <p className="text-xs text-gray-500 uppercase">{storage.storage_type.replace('_', ' ')}</p>
                                     </div>
                                 </div>
@@ -372,6 +515,11 @@ export default function CloudStoragePage() {
                                         {storage.last_sync_at ? new Date(storage.last_sync_at).toLocaleString() : "Никогда"}
                                     </span>
                                 </div>
+                                {storage.last_error && (
+                                    <div className="p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded text-xs text-red-600 dark:text-red-400 break-words">
+                                        Error: {storage.last_error}
+                                    </div>
+                                )}
                                 {storage.included_paths && storage.included_paths.length > 0 && (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-gray-500">Папки:</span>
@@ -425,13 +573,19 @@ export default function CloudStoragePage() {
 
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handleSync(storage.id)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSync(storage.id);
+                                    }}
                                     className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg text-sm font-medium transition-colors"
                                 >
                                     🔄 Синхронизировать
                                 </button>
                                 <button
-                                    onClick={() => handleEdit(storage)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(storage);
+                                    }}
                                     className="px-3 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
                                     title="Настройки"
                                 >
@@ -592,6 +746,14 @@ export default function CloudStoragePage() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Details Modal */}
+            {selectedStorage && (
+                <SyncDetailsModal
+                    storage={selectedStorage}
+                    onClose={() => setSelectedStorage(null)}
+                />
             )}
         </div>
     );

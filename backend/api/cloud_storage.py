@@ -1,5 +1,6 @@
 """API endpoints for cloud storage management."""
 from typing import List, Optional, Dict
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -76,11 +77,26 @@ class SyncJobResponse(BaseModel):
         from_attributes = True
 
 
+class FileOperationResponse(BaseModel):
+    """Schema for file operation details."""
+    id: int
+    file_name: str
+    file_path: str
+    operation_type: str
+    status: str
+    error_message: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
 class SyncStatusResponse(BaseModel):
     """Schema for detailed sync status."""
     storage: CloudStorageResponse
     current_job: Optional[SyncJobResponse] = None
     progress: Optional[dict] = None
+    recent_files: List[FileOperationResponse] = []
 
 
 # Dependency to get current user (placeholder - implement with auth)
@@ -347,10 +363,25 @@ async def get_sync_status(
                 }
             }
     
+    # Get recent file operations
+    recent_files = []
+    if current_job:
+        # Import here to avoid circular imports if any, though top-level is fine usually
+        from db.cloud_storage_models import CloudFileOperation
+        
+        files_result = await db.execute(
+            select(CloudFileOperation)
+            .where(CloudFileOperation.sync_job_id == current_job.id)
+            .order_by(CloudFileOperation.updated_at.desc())
+            .limit(10)
+        )
+        recent_files = files_result.scalars().all()
+    
     return SyncStatusResponse(
         storage=storage,
         current_job=current_job,
-        progress=progress
+        progress=progress,
+        recent_files=recent_files
     )
 
 

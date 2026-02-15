@@ -1,17 +1,23 @@
-"""Database session management."""
+import sys
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy import text
 from typing import AsyncGenerator
 from config import settings
 
+# Determine if running in Celery worker
+IS_CELERY = "celery" in sys.argv[0] or (len(sys.argv) > 1 and "celery" in sys.argv[1])
+
 # Create async engine
+# Use NullPool for Celery to avoid fork-safety issues with asyncpg
+pool_class = NullPool if (settings.debug or IS_CELERY) else None
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,
-    poolclass=NullPool if settings.debug else None,
+    poolclass=pool_class,
 )
 
 # Create session factory

@@ -109,6 +109,62 @@ export const tasksApi = {
     }
 };
 
+export interface CloudStorage {
+    id: number;
+    storage_type: string;
+    name: string;
+    sync_path: string;
+    included_paths?: string[];
+    sync_enabled: boolean;
+    auto_sync: boolean;
+    sync_interval_minutes: number;
+    last_sync_at?: string;
+    last_sync_status?: string;
+    last_error?: string;
+    total_files_synced: number;
+    total_files_processed: number;
+    process_documents: boolean;
+}
+
+export interface SyncJob {
+    id: number;
+    storage_id: number;
+    status: string;
+    total_files: number;
+    processed_files: number;
+    failed_files: number;
+    new_files: number;
+    started_at?: string;
+    completed_at?: string;
+    error_message?: string;
+}
+
+export interface FileOperation {
+    id: number;
+    file_name: string;
+    file_path: string;
+    operation_type: string;
+    status: string;
+    error_message?: string;
+    created_at: string;
+}
+
+export interface SyncStatus {
+    storage: CloudStorage;
+    current_job?: SyncJob;
+    progress?: {
+        current: number;
+        total: number;
+        percent: number;
+        files: {
+            processed: number;
+            failed: number;
+            new: number;
+        }
+    };
+    recent_files: FileOperation[];
+}
+
 // Calendar API
 export const calendarApi = {
     list: async (startDate?: string, endDate?: string) => {
