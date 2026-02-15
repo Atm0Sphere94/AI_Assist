@@ -48,6 +48,10 @@ class CloudStorageResponse(BaseModel):
     sync_interval_minutes: int
     last_sync_at: Optional[str] = None
     last_sync_status: Optional[str] = None
+    last_error: Optional[str] = None
+    total_files_synced: int = 0
+    total_files_processed: int = 0
+    process_documents: bool = True
     total_files_synced: int
     total_files_processed: int
     
