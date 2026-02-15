@@ -1,19 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, FormEvent } from "react";
-import { cloudStorageApi } from "@/lib/api";
-
-type CloudStorage = {
-    id: number;
-    storage_type: string;
-    name: string;
-    sync_enabled: boolean;
-    last_sync_at?: string;
-    last_sync_status?: string;
-    total_files_synced: number;
-    included_paths?: string[];
-    process_documents: boolean;
-};
+import { cloudStorageApi, CloudStorage } from "@/lib/api";
 
 // Progress type
 type SyncProgress = {
