@@ -12,12 +12,20 @@ IS_CELERY = "celery" in sys.argv[0] or (len(sys.argv) > 1 and "celery" in sys.ar
 # Use NullPool for Celery to avoid fork-safety issues with asyncpg
 pool_class = NullPool if (settings.debug or IS_CELERY) else None
 
+# Pool parameters are incompatible with NullPool
+engine_kwargs = {
+    "echo": settings.debug,
+    "poolclass": pool_class,
+}
+
+# Only add pool parameters if NOT using NullPool
+if pool_class is None:
+    engine_kwargs["pool_size"] = settings.database_pool_size
+    engine_kwargs["max_overflow"] = settings.database_max_overflow
+
 engine = create_async_engine(
     settings.database_url,
-    echo=settings.debug,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
-    poolclass=pool_class,
+    **engine_kwargs
 )
 
 # Create session factory
