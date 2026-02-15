@@ -136,8 +136,7 @@ class Document(Base):
     is_processed = Column(Boolean, default=False)
     is_indexed = Column(Boolean, default=False)
     meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
+    file_hash = Column(String(64), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

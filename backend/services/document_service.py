@@ -23,7 +23,8 @@ class DocumentService:
         file_path: str,
         original_filename: str,
         folder_id: Optional[int] = None,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
+        file_hash: Optional[str] = None
     ) -> Document:
         """
         Create a document record in the database.
@@ -34,6 +35,7 @@ class DocumentService:
             original_filename: Original filename
             folder_id: Optional folder ID
             metadata: Optional metadata dict
+            file_hash: Optional MD5 hash of the file
             
         Returns:
             Created Document instance
@@ -41,9 +43,8 @@ class DocumentService:
         # Get file info
         file_size = os.path.getsize(file_path) if os.path.exists(file_path) else 0
         
-        # Calculate file hash
-        file_hash = None
-        if os.path.exists(file_path):
+        # Calculate file hash if not provided and file exists
+        if not file_hash and os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 file_hash = hashlib.md5(f.read()).hexdigest()
         
@@ -71,6 +72,7 @@ class DocumentService:
             file_size=file_size,
             document_type=file_type,
             meta_data=metadata or {},
+            file_hash=file_hash,
             created_at=datetime.utcnow()
         )
         
@@ -83,6 +85,15 @@ class DocumentService:
     async def get_document(self, document_id: int) -> Optional[Document]:
         """Get document by ID."""
         return await self.db.get(Document, document_id)
+
+    async def get_document_by_filename(self, user_id: int, filename: str) -> Optional[Document]:
+        """Get document by original filename and user_id."""
+        query = select(Document).where(
+            Document.user_id == user_id,
+            Document.original_filename == filename
+        ).limit(1)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
         
     async def list_documents(
         self, 

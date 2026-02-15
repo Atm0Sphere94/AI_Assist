@@ -94,42 +94,76 @@ async def sync_yandex_disk(
                         file_path=file_info['path'],
                         file_name=file_info['name'],
                         file_size=file_info.get('size', 0),
-                        operation_type='download',
+                        file_hash=file_info.get('md5'),
+                        operation_type='check',
                         status=SyncStatus.IN_PROGRESS
                     )
                     db.add(file_op)
                     await db.commit()
                     
-                    # Download file
-                    local_path = f"{settings.upload_dir}/yandex_disk/{storage.user_id}/{file_info['name']}"
-                    success = await yd_service.download_file(
-                        file_info['path'],
-                        local_path
+                    # Check if file has changed
+                    doc_service = DocumentService(db)
+                    existing_doc = await doc_service.get_document_by_filename(
+                        user_id=storage.user_id, 
+                        filename=file_info['name']
                     )
                     
-                    if success and storage.process_documents:
-                        # Process document (add to knowledge base)
-                        doc_service = DocumentService(db)
-                        rag_service = RAGService(db)
+                    remote_hash = file_info.get('md5')
+                    
+                    if existing_doc and existing_doc.file_hash == remote_hash:
+                        # File unchanged
+                        file_op.operation_type = 'skip'
+                        file_op.status = SyncStatus.COMPLETED
+                        file_op.document_id = existing_doc.id
+                        processed += 1
+                        job.processed_files = processed
+                        logger.info(f"Skipping unchanged file: {file_info['name']}")
+                    
+                    else:
+                        # File is new or changed
+                        file_op.operation_type = 'download'
                         
-                        # Create document record
-                        document = await doc_service.create_document(
-                            user_id=storage.user_id,
-                            file_path=local_path,
-                            original_filename=file_info['name']
+                        # Download file
+                        local_path = f"{settings.upload_dir}/yandex_disk/{storage.user_id}/{file_info['name']}"
+                        success = await yd_service.download_file(
+                            file_info['path'],
+                            local_path
                         )
                         
-                        # Index in RAG
-                        await rag_service.index_document(document.id)
+                        if success and storage.process_documents:
+                            # Process document (add to knowledge base)
+                            rag_service = RAGService(db)
+                            
+                            if existing_doc:
+                                # Update existing document
+                                document = await doc_service.update_document(
+                                    existing_doc.id,
+                                    file_hash=remote_hash,
+                                    file_size=file_info.get('size', 0),
+                                    updated_at=datetime.utcnow(),
+                                    is_indexed=False # Force re-indexing
+                                )
+                                job.updated_files += 1
+                            else:
+                                # Create new document
+                                document = await doc_service.create_document(
+                                    user_id=storage.user_id,
+                                    file_path=local_path,
+                                    original_filename=file_info['name'],
+                                    file_hash=remote_hash
+                                )
+                                job.new_files += 1
+                            
+                            # Index in RAG
+                            await rag_service.index_document(document.id)
+                            
+                            file_op.document_id = document.id
+                            file_op.is_processed = True
+                            file_op.is_indexed = True
                         
-                        file_op.document_id = document.id
-                        file_op.is_processed = True
-                        file_op.is_indexed = True
-                        job.new_files += 1
-                    
-                    file_op.status = SyncStatus.COMPLETED
-                    processed += 1
-                    job.processed_files = processed
+                        file_op.status = SyncStatus.COMPLETED
+                        processed += 1
+                        job.processed_files = processed
                     
                     # Update progress
                     self.update_state(
