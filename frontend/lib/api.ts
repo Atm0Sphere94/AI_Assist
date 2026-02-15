@@ -152,10 +152,12 @@ export const foldersApi = {
 
 // Documents API
 export const documentsApi = {
-    list: async (folderId?: number) => {
-        const params = new URLSearchParams();
-        if (folderId) params.append("folder_id", folderId.toString());
-        const { data } = await api.get(`/api/documents/?${params.toString()}`);
+    list: async (folderId?: number, recursive?: boolean) => {
+        const params: any = {};
+        if (folderId !== undefined) params.folder_id = folderId;
+        if (recursive) params.recursive = true;
+
+        const { data } = await api.get("/api/documents/", { params });
         return data;
     },
     upload: async (file: File, folderId?: number) => {
