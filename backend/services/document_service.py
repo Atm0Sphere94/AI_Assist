@@ -84,12 +84,31 @@ class DocumentService:
         """Get document by ID."""
         return await self.db.get(Document, document_id)
         
-    async def list_documents(self, user_id: int, folder_id: Optional[int] = None, limit: int = 10, offset: int = 0) -> list[Document]:
-        """List user documents."""
-        query = select(Document).where(
-            Document.user_id == user_id,
-            Document.folder_id == folder_id
-        ).order_by(Document.created_at.desc()).limit(limit).offset(offset)
+    async def list_documents(
+        self, 
+        user_id: int, 
+        folder_id: Optional[int] = None, 
+        limit: int = 10, 
+        offset: int = 0,
+        recursive: bool = False
+    ) -> list[Document]:
+        """List user documents.
+        
+        Args:
+            user_id: The ID of the user.
+            folder_id: Optional folder ID to filter by.
+            limit: Maximum number of documents to return.
+            offset: Number of documents to skip.
+            recursive: If True, returns all documents regardless of folder (ignoring folder_id usually).
+                       If False (default), filters strictly by folder_id.
+        """
+        query = select(Document).where(Document.user_id == user_id)
+        
+        # Only apply folder filter if NOT recursive
+        if not recursive:
+            query = query.where(Document.folder_id == folder_id)
+            
+        query = query.order_by(Document.created_at.desc()).limit(limit).offset(offset)
         result = await self.db.execute(query)
         return result.scalars().all()
     

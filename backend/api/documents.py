@@ -31,11 +31,17 @@ class DocumentResponse(BaseModel):
 @router.get("/", response_model=List[DocumentResponse])
 async def list_documents(
     folder_id: Optional[int] = None,
+    recursive: bool = False,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     service = DocumentService(db)
-    return await service.list_documents(current_user.id, folder_id=folder_id, limit=100)
+    return await service.list_documents(
+        current_user.id, 
+        folder_id=folder_id, 
+        limit=100,
+        recursive=recursive
+    )
 
 from fastapi import BackgroundTasks
 from services.rag_service import RAGService

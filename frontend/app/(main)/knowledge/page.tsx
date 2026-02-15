@@ -30,7 +30,8 @@ export default function KnowledgePage() {
     const fetchDocuments = async () => {
         try {
             setLoadingDocs(true);
-            const data = await documentsApi.list();
+            // Fetch all documents recursively for knowledge base
+            const data = await documentsApi.list(undefined, true);
             setDocuments(data);
         } catch (error) {
             console.error("Failed to fetch documents:", error);
