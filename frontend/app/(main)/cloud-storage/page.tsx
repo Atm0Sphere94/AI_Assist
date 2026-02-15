@@ -56,7 +56,7 @@ function FolderBrowser({
             const data = await cloudStorageApi.listRemoteFiles({
                 path,
                 storage_type: storageType,
-                access_token: apiToken,
+                access_token: apiToken?.trim(),
                 storage_id: storageId
             });
             setItems(data.items);
@@ -215,6 +215,7 @@ export default function CloudStoragePage() {
             // Include selected paths in payload
             const payload = {
                 ...newStorage,
+                access_token: newStorage.access_token.trim(),
                 included_paths: selectedFolders.length > 0 ? selectedFolders : ["/"]
             };
             const created = await cloudStorageApi.connect(payload);
