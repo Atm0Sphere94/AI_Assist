@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 
-from celery_app import celery_app
+from celery import shared_task
 from db.session import async_session_factory
 from db.models import Reminder, User
 from telegram.bot import bot
@@ -66,7 +66,7 @@ async def process_reminders():
         
         await session.commit()
 
-@celery_app.task(name="tasks.check_reminders")
+@shared_task(name="tasks.check_reminders")
 def check_reminders():
     """
     Celery task to check for reminders.

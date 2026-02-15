@@ -1,6 +1,10 @@
 """RAG (Retrieval Augmented Generation) service for document indexing and retrieval."""
 import logging
+import os
+import uuid
 from typing import List, Optional
+import PyPDF2
+import docx
 from sqlalchemy.ext.asyncio import AsyncSession
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
@@ -24,7 +28,8 @@ class RAGService:
             timeout=30
         )
         self.embeddings = OpenAIEmbeddings(
-            openai_api_key=settings.openai_api_key
+            openai_api_key=settings.openai_api_key,
+            model="text-embedding-3-small"
         ) if settings.openai_api_key else None
         
         self.collection_name = "documents"
@@ -97,11 +102,13 @@ class RAGService:
                 return False
             
             # Generate embeddings
-            embeddings = self.embeddings.embed_documents(chunks)
+            try:
+                embeddings = self.embeddings.embed_documents(chunks)
+            except Exception as e:
+                logger.error(f"Error generating embeddings: {e}")
+                return False
             
             # Index in Qdrant
-            import uuid
-            
             points = []
             for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 # Generate deterministic UUID for point ID
@@ -140,21 +147,23 @@ class RAGService:
 
     async def _extract_text(self, file_path: str, filename: str) -> str:
         """Extract text from file based on extension."""
-        import os
         ext = os.path.splitext(filename)[1].lower()
         
-        if ext == '.pdf':
-            return self._extract_pdf(file_path)
-        elif ext in ['.docx', '.doc']:
-            return self._extract_docx(file_path)
-        else:
-            # Default to text
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
+        try:
+            if ext == '.pdf':
+                return self._extract_pdf(file_path)
+            elif ext in ['.docx', '.doc']:
+                return self._extract_docx(file_path)
+            else:
+                # Default to text
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read()
+        except Exception as e:
+            logger.error(f"Failed to extract text from {filename}: {e}")
+            return ""
 
     def _extract_pdf(self, file_path: str) -> str:
         """Extract text from PDF."""
-        import PyPDF2
         text = ""
         with open(file_path, 'rb') as f:
             reader = PyPDF2.PdfReader(f)
@@ -164,11 +173,10 @@ class RAGService:
 
     def _extract_docx(self, file_path: str) -> str:
         """Extract text from DOCX."""
-        import docx
         doc = docx.Document(file_path)
         return "\n".join([para.text for para in doc.paragraphs])
     
-    async def search(
+    def search(
         self,
         query: str,
         user_id: int,
@@ -194,14 +202,19 @@ class RAGService:
             query_embedding = self.embeddings.embed_query(query)
             
             # Search in Qdrant
+            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            
             search_results = self.qdrant_client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding,
-                query_filter={
-                    "must": [
-                        {"key": "user_id", "match": {"value": user_id}}
+                query_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="user_id",
+                            match=MatchValue(value=user_id)
+                        )
                     ]
-                },
+                ),
                 limit=limit
             )
             

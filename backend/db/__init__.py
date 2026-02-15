@@ -8,6 +8,7 @@ from db.models import (
     CalendarEvent,
     Reminder,
     Document,
+    Folder,
     KnowledgeBase,
     ConversationHistory,
 )
@@ -24,6 +25,7 @@ __all__ = [
     "CalendarEvent",
     "Reminder",
     "Document",
+    "Folder",
     "KnowledgeBase",
     "ConversationHistory",
 ]

@@ -356,6 +356,7 @@ async def update_cloud_storage(
     file_filters: Optional[List[str]] = None,
     exclude_patterns: Optional[List[str]] = None,
     included_paths: Optional[List[str]] = None,
+    process_documents: Optional[bool] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -377,6 +378,8 @@ async def update_cloud_storage(
         storage.exclude_patterns = exclude_patterns
     if included_paths is not None:
         storage.included_paths = included_paths
+    if process_documents is not None:
+        storage.process_documents = process_documents
     
     await db.commit()
     await db.refresh(storage)

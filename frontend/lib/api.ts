@@ -63,6 +63,14 @@ export const cloudStorageApi = {
         const { data } = await api.get(`/api/cloud-storage/${storageId}/status`);
         return data;
     },
+    update: async (storageId: number, data: any) => {
+        const { data: response } = await api.put(`/api/cloud-storage/${storageId}`, data);
+        return response;
+    },
+    listRemoteFiles: async (params: any) => {
+        const { data } = await api.get("/api/cloud-storage/list-remote-files", { params });
+        return data;
+    }
 };
 
 // Settings API
@@ -120,20 +128,49 @@ export const calendarApi = {
     },
 };
 
-// Documents API
-export const documentsApi = {
-    list: async () => {
-        const { data } = await api.get("/api/documents/");
+// Folders API
+export const foldersApi = {
+    list: async (parentId?: number) => {
+        const params = new URLSearchParams();
+        if (parentId) params.append("parent_id", parentId.toString());
+        const { data } = await api.get(`/api/folders/?${params.toString()}`);
         return data;
     },
-    upload: async (file: File) => {
+    create: async (folderData: { name: string; parent_id?: number }) => {
+        const { data } = await api.post("/api/folders/", folderData);
+        return data;
+    },
+    update: async (folderId: number, folderData: { name?: string; parent_id?: number }) => {
+        const { data } = await api.put(`/api/folders/${folderId}`, folderData);
+        return data;
+    },
+    delete: async (folderId: number) => {
+        const { data } = await api.delete(`/api/folders/${folderId}`);
+        return data;
+    }
+};
+
+// Documents API
+export const documentsApi = {
+    list: async (folderId?: number) => {
+        const params = new URLSearchParams();
+        if (folderId) params.append("folder_id", folderId.toString());
+        const { data } = await api.get(`/api/documents/?${params.toString()}`);
+        return data;
+    },
+    upload: async (file: File, folderId?: number) => {
         const formData = new FormData();
         formData.append("file", file);
+        if (folderId) formData.append("folder_id", folderId.toString());
         const { data } = await api.post("/api/documents/upload", formData, {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
         });
+        return data;
+    },
+    update: async (documentId: number, documentData: { filename?: string; folder_id?: number | null }) => {
+        const { data } = await api.put(`/api/documents/${documentId}`, documentData);
         return data;
     },
     delete: async (documentId: number) => {

@@ -21,6 +21,8 @@ class DocumentResponse(BaseModel):
     document_type: Optional[str]
     is_processed: bool
     is_indexed: bool
+    is_indexed: bool
+    folder_id: Optional[int]
     created_at: datetime
     
     class Config:
@@ -28,11 +30,12 @@ class DocumentResponse(BaseModel):
 
 @router.get("/", response_model=List[DocumentResponse])
 async def list_documents(
+    folder_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     service = DocumentService(db)
-    return await service.list_documents(current_user.id, limit=100)
+    return await service.list_documents(current_user.id, folder_id=folder_id, limit=100)
 
 from fastapi import BackgroundTasks
 from services.rag_service import RAGService
@@ -49,6 +52,7 @@ async def background_index_document(document_id: int, db_session_maker):
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    folder_id: Optional[int] = Form(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -65,7 +69,8 @@ async def upload_document(
     document = await service.create_document(
         user_id=current_user.id,
         file_path=file_path,
-        original_filename=file.filename or "unknown"
+        original_filename=file.filename or "unknown",
+        folder_id=folder_id
     )
     
     # Trigger indexing in background
@@ -74,6 +79,29 @@ async def upload_document(
     background_tasks.add_task(background_index_document, document.id, async_session_maker)
     
     return {"message": "Document uploaded and indexing started", "document_id": document.id}
+
+class DocumentUpdate(BaseModel):
+    folder_id: Optional[int] = None
+    filename: Optional[str] = None
+
+@router.put("/{document_id}", response_model=DocumentResponse)
+async def update_document(
+    document_id: int,
+    document_in: DocumentUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update document (e.g. move to folder)."""
+    service = DocumentService(db)
+    doc = await service.get_document(document_id)
+    if not doc or doc.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    updated_doc = await service.update_document(
+        document_id,
+        **document_in.model_dump(exclude_unset=True)
+    )
+    return updated_doc
 
 @router.delete("/{document_id}")
 async def delete_document(

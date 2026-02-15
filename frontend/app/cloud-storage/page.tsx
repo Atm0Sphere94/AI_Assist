@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { cloudStorageApi } from "@/lib/api";
 
 type CloudStorage = {
@@ -12,6 +12,19 @@ type CloudStorage = {
     last_sync_status?: string;
     total_files_synced: number;
     included_paths?: string[];
+    process_documents: boolean;
+};
+
+// Progress type
+type SyncProgress = {
+    current: number;
+    total: number;
+    percent: number;
+    files: {
+        processed: number;
+        failed: number;
+        new: number;
+    };
 };
 
 // Folder Browser Component
@@ -129,6 +142,7 @@ export default function CloudStoragePage() {
         storage_type: "yandex_disk",
         name: "",
         access_token: "",
+        process_documents: true,
     });
     const [connecting, setConnecting] = useState(false);
 
@@ -152,7 +166,49 @@ export default function CloudStoragePage() {
         }
     };
 
-    const handleConnect = async (e: React.FormEvent) => {
+    const [progress, setProgress] = useState<Record<number, SyncProgress>>({});
+    const [processDocs, setProcessDocs] = useState<Record<number, boolean>>({});
+
+    // Polling for sync status
+    useEffect(() => {
+        const pollStatus = async () => {
+            const updates: Record<number, SyncProgress> = {};
+            let hasActiveSync = false;
+
+            for (const storage of storages) {
+                // Initialize processDocs state
+                if (processDocs[storage.id] === undefined) {
+                    setProcessDocs(prev => ({ ...prev, [storage.id]: storage.process_documents }));
+                }
+
+                if (storage.last_sync_status === 'in_progress' || storage.sync_enabled) {
+                    try {
+                        const status = await cloudStorageApi.getStatus(storage.id);
+                        if (status.current_job && status.current_job.status === 'in_progress' && status.progress) {
+                            updates[storage.id] = status.progress;
+                            hasActiveSync = true;
+                        } else if (progress[storage.id]) {
+                            // Clear progress if finished
+                            const newProgress = { ...progress };
+                            delete newProgress[storage.id];
+                            setProgress(newProgress);
+                        }
+                    } catch (e) {
+                        console.error(`Failed to poll status for ${storage.id}`, e);
+                    }
+                }
+            }
+
+            if (Object.keys(updates).length > 0) {
+                setProgress(prev => ({ ...prev, ...updates }));
+            }
+        };
+
+        const interval = setInterval(pollStatus, 2000);
+        return () => clearInterval(interval);
+    }, [storages]);
+
+    const handleConnect = async (e: FormEvent) => {
         e.preventDefault();
         try {
             setConnecting(true);
@@ -164,7 +220,7 @@ export default function CloudStoragePage() {
             const created = await cloudStorageApi.connect(payload);
             setStorages([...storages, created]);
             setShowConnectModal(false);
-            setNewStorage({ storage_type: "yandex_disk", name: "", access_token: "" });
+            setNewStorage({ storage_type: "yandex_disk", name: "", access_token: "", process_documents: true });
             setSelectedFolders([]);
             setShowFolderBrowser(false);
         } catch (error) {
@@ -179,9 +235,24 @@ export default function CloudStoragePage() {
         try {
             alert("Синхронизация запущена в фоне");
             await cloudStorageApi.sync(id);
-            // In a real app, we would start polling for status here
+            // Update local state to trigger polling immediately
+            setStorages(storages.map(s => s.id === id ? { ...s, last_sync_status: 'in_progress' } : s));
         } catch (error) {
             console.error("Failed to start sync:", error);
+        }
+    };
+
+    const toggleProcessDocs = async (id: number, enabled: boolean) => {
+        try {
+            // Optimistic update
+            setProcessDocs(prev => ({ ...prev, [id]: enabled }));
+            await cloudStorageApi.update(id, { process_documents: enabled });
+            // Update storage list to reflect change
+            setStorages(storages.map(s => s.id === id ? { ...s, process_documents: enabled } : s));
+        } catch (error) {
+            console.error("Failed to update process documents setting:", error);
+            // Revert on failure
+            setProcessDocs(prev => ({ ...prev, [id]: !enabled }));
         }
     };
 
@@ -251,6 +322,35 @@ export default function CloudStoragePage() {
                                         </span>
                                     </div>
                                 )}
+
+                                {/* Progress Bar */}
+                                {progress[storage.id] && (
+                                    <div className="mt-2 space-y-1">
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>Синхронизация...</span>
+                                            <span>{progress[storage.id].current} / {progress[storage.id].total}</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                                            <div
+                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress[storage.id].percent}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Settings Toggle */}
+                                <div className="pt-2 mt-2 border-t dark:border-gray-700">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={processDocs[storage.id] ?? storage.process_documents ?? true}
+                                            onChange={(e) => toggleProcessDocs(storage.id, e.target.checked)}
+                                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <span className="text-gray-600 dark:text-gray-400">Индексация для RAG</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="flex gap-2">
@@ -300,6 +400,19 @@ export default function CloudStoragePage() {
                                     className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
                                     placeholder="Мой Диск"
                                 />
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="processDocs"
+                                    checked={newStorage.process_documents}
+                                    onChange={(e) => setNewStorage({ ...newStorage, process_documents: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <label htmlFor="processDocs" className="text-sm dark:text-gray-300">
+                                    Индексировать документы (добавить в базу знаний)
+                                </label>
                             </div>
 
                             <div>

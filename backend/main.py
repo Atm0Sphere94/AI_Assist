@@ -124,6 +124,7 @@ from api.tasks import router as tasks_router
 from api.calendar import router as calendar_router
 from api.documents import router as documents_router
 from api.knowledge import router as knowledge_router
+from api.folders import router as folders_router
 
 app.include_router(auth_router)
 app.include_router(chat_router)
@@ -132,6 +133,7 @@ app.include_router(tasks_router, prefix="/api/tasks")
 app.include_router(calendar_router, prefix="/api/calendar")
 app.include_router(documents_router, prefix="/api/documents")
 app.include_router(knowledge_router, prefix="/api/knowledge")
+app.include_router(folders_router, prefix="/api/folders")
 app.include_router(cloud_storage_router)
 app.include_router(obsidian_router)
 

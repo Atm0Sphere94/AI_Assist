@@ -38,6 +38,7 @@ class User(Base):
     calendar_events = relationship("CalendarEvent", back_populates="user", cascade="all, delete-orphan")
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+    folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")
     conversations = relationship("ConversationHistory", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -131,14 +132,36 @@ class Document(Base):
     file_size = Column(Integer, nullable=False)
     mime_type = Column(String(100), nullable=True)
     document_type = Column(String(50), nullable=True)  # pdf, docx, txt, etc.
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     is_processed = Column(Boolean, default=False)
     is_indexed = Column(Boolean, default=False)
     meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
     created_at = Column(DateTime, default=datetime.utcnow)
     
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
     # Relationships
     user = relationship("User", back_populates="documents")
+    folder = relationship("Folder", back_populates="documents")
     knowledge_entries = relationship("KnowledgeBase", back_populates="document", cascade="all, delete-orphan")
+
+
+class Folder(Base):
+    """Folders for organizing documents."""
+    __tablename__ = "folders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    name = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="folders")
+    parent = relationship("Folder", remote_side=[id], back_populates="children")
+    children = relationship("Folder", back_populates="parent", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="folder")
 
 
 class KnowledgeBase(Base):
