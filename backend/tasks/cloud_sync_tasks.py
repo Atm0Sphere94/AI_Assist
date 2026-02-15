@@ -64,6 +64,10 @@ async def sync_yandex_disk(
             # Update job status
             job.status = SyncStatus.IN_PROGRESS
             job.started_at = datetime.utcnow()
+            
+            # Ensure storage status reflects this (in case triggered automatically)
+            storage.last_sync_status = SyncStatus.IN_PROGRESS
+            
             await db.commit()
             
             # Initialize Yandex Disk service

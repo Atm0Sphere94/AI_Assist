@@ -34,6 +34,15 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  
+  @keyframes indeterminate-slide {
+    0% { transform: translateX(-150%); }
+    100% { transform: translateX(400%); }
+  }
+  
+  .animate-indeterminate-slide {
+    animation: indeterminate-slide 1.5s infinite linear;
+  }
 }
 
 /* Scrollbar styling */

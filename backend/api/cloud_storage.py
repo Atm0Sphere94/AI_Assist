@@ -290,6 +290,9 @@ async def trigger_sync(
         if vault:
             task = cloud_sync_tasks.sync_obsidian_vault.delay(vault.id, job.id)
             job.celery_task_id = task.id
+            
+    # Update storage status immediately for UI feedback
+    storage.last_sync_status = SyncStatus.IN_PROGRESS
     
     await db.commit()
     

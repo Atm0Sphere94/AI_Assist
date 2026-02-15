@@ -197,9 +197,19 @@ export default function CloudStoragePage() {
                 if (storage.last_sync_status === 'in_progress' || storage.sync_enabled) {
                     try {
                         const status = await cloudStorageApi.getStatus(storage.id);
-                        if (status.current_job && status.current_job.status === 'in_progress' && status.progress) {
-                            updates[storage.id] = status.progress;
+                        if (status.current_job && status.current_job.status === 'in_progress') {
                             hasActiveSync = true;
+                            if (status.progress) {
+                                updates[storage.id] = status.progress;
+                            } else {
+                                // Job is running but scanning files (progress not yet available)
+                                updates[storage.id] = {
+                                    current: 0,
+                                    total: 0,
+                                    percent: 0,
+                                    files: { processed: 0, failed: 0, new: 0 }
+                                };
+                            }
                         } else if (progress[storage.id]) {
                             // Clear progress if finished
                             const newProgress = { ...progress };
@@ -375,14 +385,26 @@ export default function CloudStoragePage() {
                                 {progress[storage.id] && (
                                     <div className="mt-2 space-y-1">
                                         <div className="flex justify-between text-xs text-gray-500">
-                                            <span>Синхронизация...</span>
-                                            <span>{progress[storage.id].current} / {progress[storage.id].total}</span>
+                                            <span>
+                                                {progress[storage.id].total === 0
+                                                    ? "Сканирование файлов..."
+                                                    : "Синхронизация..."}
+                                            </span>
+                                            <span>
+                                                {progress[storage.id].total > 0
+                                                    ? `${progress[storage.id].current} / ${progress[storage.id].total}`
+                                                    : ""}
+                                            </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                                            <div
-                                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${progress[storage.id].percent}%` }}
-                                            ></div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 overflow-hidden">
+                                            {progress[storage.id].total === 0 ? (
+                                                <div className="bg-blue-600 h-2 rounded-full w-1/3 animate-indeterminate-slide"></div>
+                                            ) : (
+                                                <div
+                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${progress[storage.id].percent}%` }}
+                                                ></div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
