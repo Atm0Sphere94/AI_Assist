@@ -154,8 +154,14 @@ export default function CloudStoragePage() {
     const [connecting, setConnecting] = useState(false);
 
     // New state for folder selection
+    // New state for folder selection
     const [showFolderBrowser, setShowFolderBrowser] = useState(false);
     const [selectedFolders, setSelectedFolders] = useState<string[]>([]);
+
+    // State for editing existing storage
+    const [editingStorage, setEditingStorage] = useState<CloudStorage | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [updating, setUpdating] = useState(false);
 
     useEffect(() => {
         fetchStorages();
@@ -268,6 +274,36 @@ export default function CloudStoragePage() {
         }
     };
 
+    const handleEdit = (storage: CloudStorage) => {
+        setEditingStorage(storage);
+        setSelectedFolders(storage.included_paths || ["/"]);
+        setShowEditModal(true);
+        // Reset browser state by forcing a re-mount or similar if needed, 
+        // but FolderBrowser uses internal state. We might need to ensure it resets.
+    };
+
+    const handleUpdate = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!editingStorage) return;
+
+        try {
+            setUpdating(true);
+            const updated = await cloudStorageApi.update(editingStorage.id, {
+                included_paths: selectedFolders.length > 0 ? selectedFolders : ["/"],
+                // We could also update name or other fields here if we added inputs for them
+            });
+
+            setStorages(storages.map(s => s.id === editingStorage.id ? updated : s));
+            setShowEditModal(false);
+            setEditingStorage(null);
+        } catch (error) {
+            console.error("Failed to update storage:", error);
+            alert("Не удалось сохранить настройки.");
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const getIcon = (type: string) => {
         switch (type) {
             case "yandex_disk": return "🛸";
@@ -373,6 +409,7 @@ export default function CloudStoragePage() {
                                     🔄 Синхронизировать
                                 </button>
                                 <button
+                                    onClick={() => handleEdit(storage)}
                                     className="px-3 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
                                     title="Настройки"
                                 >
@@ -480,6 +517,54 @@ export default function CloudStoragePage() {
                                     className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg disabled:opacity-50"
                                 >
                                     {connecting ? "Подключение..." : "Подключить"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Storage Modal */}
+            {showEditModal && editingStorage && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Настройки хранилища</h2>
+                        <h3 className="text-md text-gray-500 mb-4">{editingStorage.name}</h3>
+
+                        <form onSubmit={handleUpdate} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-2 dark:text-gray-300">
+                                    Выберите папки для синхронизации
+                                </label>
+
+                                <FolderBrowser
+                                    storageId={editingStorage.id}
+                                    storageType={editingStorage.storage_type}
+                                    selectedPaths={selectedFolders}
+                                    onSelectionChange={setSelectedFolders}
+                                />
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Выберите папки, файлы из которых нужно скачивать и индексировать.
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setEditingStorage(null);
+                                    }}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
+                                >
+                                    Отмена
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updating}
+                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                                >
+                                    {updating ? "Сохранение..." : "Сохранить"}
                                 </button>
                             </div>
                         </form>
