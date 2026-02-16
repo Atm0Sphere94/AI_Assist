@@ -107,8 +107,6 @@ services:
       - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
     healthcheck:
       disable: true
-    healthcheck:
-      disable: true
 
   # FastAPI Backend
   backend:
