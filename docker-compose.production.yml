@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Traefik - Reverse Proxy with SSL
   traefik:
-    image: traefik:v2.10
+    image: traefik:v2.11
     container_name: ai_jarvis_traefik
     restart: unless-stopped
     command:
@@ -13,7 +13,6 @@ services:
       
       # Providers
       - "--providers.docker=true"
-      - "--providers.docker.version=1.44"
       - "--providers.docker.exposedbydefault=false"
       
       # Entrypoints
@@ -43,6 +42,7 @@ services:
       # DNS Provider credentials (Cloudflare example)
       - CF_API_EMAIL=${CF_API_EMAIL}
       - CF_API_KEY=${CF_API_KEY}
+      - TRAEFIK_PROVIDERS_DOCKER_VERSION=1.44
     labels:
       # Traefik dashboard
       - "traefik.enable=true"
