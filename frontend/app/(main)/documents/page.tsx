@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { File, Folder, Search, FileText, FileCode, Image } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { api } from "@/lib/api";
 
 interface FolderNode {
@@ -29,10 +33,12 @@ export default function DocumentsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(false);
 
+    // Load folder tree
     useEffect(() => {
         loadFolders();
     }, []);
 
+    // Load documents when folder selected
     useEffect(() => {
         if (selectedFolder !== null) {
             loadFolderDocuments(selectedFolder);
@@ -82,13 +88,13 @@ export default function DocumentsPage() {
     const getFileIcon = (type: string) => {
         switch (type) {
             case "pdf":
-                return "📄";
+                return <FileText className="w-5 h-5 text-red-500" />;
             case "document":
-                return "📝";
+                return <FileCode className="w-5 h-5 text-blue-500" />;
             case "image":
-                return "🖼️";
+                return <Image className="w-5 h-5 text-green-500" />;
             default:
-                return "📎";
+                return <File className="w-5 h-5 text-gray-500" />;
         }
     };
 
@@ -103,16 +109,15 @@ export default function DocumentsPage() {
             <div key={node.id} style={{ paddingLeft: `${level * 16}px` }}>
                 <button
                     onClick={() => setSelectedFolder(node.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition
-            ${selectedFolder === node.id
-                            ? "bg-blue-100 dark:bg-blue-900 font-medium"
-                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-md transition-colors ${selectedFolder === node.id ? "bg-accent font-medium" : ""
                         }`}
                 >
-                    <span>📁</span>
+                    <Folder className="w-4 h-4 text-amber-500" />
                     <span className="flex-1 text-left">{node.name}</span>
                     {node.document_count > 0 && (
-                        <span className="text-xs text-gray-500">{node.document_count}</span>
+                        <span className="text-xs text-muted-foreground">
+                            {node.document_count}
+                        </span>
                     )}
                 </button>
                 {node.children && node.children.length > 0 && (
@@ -124,67 +129,76 @@ export default function DocumentsPage() {
 
     return (
         <div className="flex h-screen">
-            {/* Sidebar */}
-            <div className="w-64 border-r bg-white dark:bg-gray-900">
-                <div className="p-4 border-b">
-                    <h2 className="font-semibold text-lg">📚 Документы</h2>
+            {/* Sidebar - Folder Tree */}
+            <div className="w-64 border-r border-border bg-card">
+                <div className="p-4 border-b border-border">
+                    <h2 className="font-semibold text-lg">Документы</h2>
                 </div>
-                <div className="overflow-auto h-[calc(100vh-73px)] p-2">
-                    {renderFolderTree(folders)}
-                </div>
+                <ScrollArea className="h-[calc(100vh-73px)]">
+                    <div className="p-2">{renderFolderTree(folders)}</div>
+                </ScrollArea>
             </div>
 
-            {/* Main Content */}
+            {/* Main Content - Document List */}
             <div className="flex-1 flex flex-col">
-                {/* Search */}
-                <div className="p-4 border-b">
-                    <input
-                        type="text"
-                        placeholder="🔍 Поиск документов..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            handleSearch(e.target.value);
-                        }}
-                        className="w-full px-4 py-2 border rounded dark:bg-gray-800"
-                    />
+                {/* Search Bar */}
+                <div className="p-4 border-b border-border">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Поиск документов..."
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                handleSearch(e.target.value);
+                            }}
+                            className="pl-10"
+                        />
+                    </div>
                 </div>
 
-                {/* Documents */}
-                <div className="flex-1 overflow-auto p-4">
-                    {loading ? (
-                        <p className="text-center text-gray-500">Загрузка...</p>
-                    ) : documents.length === 0 ? (
-                        <p className="text-center text-gray-500">
-                            {selectedFolder
-                                ? "В этой папке нет документов"
-                                : "Выберите папку для просмотра документов"}
-                        </p>
-                    ) : (
-                        <div className="grid gap-2">
-                            {documents.map((doc) => (
-                                <div
-                                    key={doc.id}
-                                    className="p-4 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{getFileIcon(doc.document_type)}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-medium truncate">{doc.original_filename}</p>
-                                            <p className="text-sm text-gray-500">
-                                                {formatFileSize(doc.file_size)} •{" "}
-                                                {new Date(doc.created_at).toLocaleDateString("ru-RU")}
-                                                {doc.is_indexed && (
-                                                    <span className="ml-2 text-green-600">• ✓ Проиндексировано</span>
-                                                )}
-                                            </p>
+                {/* Document List */}
+                <ScrollArea className="flex-1">
+                    <div className="p-4">
+                        {loading ? (
+                            <p className="text-center text-muted-foreground">Загрузка...</p>
+                        ) : documents.length === 0 ? (
+                            <p className="text-center text-muted-foreground">
+                                {selectedFolder
+                                    ? "В этой папке нет документов"
+                                    : "Выберите папку для просмотра документов"}
+                            </p>
+                        ) : (
+                            <div className="grid gap-2">
+                                {documents.map((doc) => (
+                                    <Card
+                                        key={doc.id}
+                                        className="p-4 hover:bg-accent transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {getFileIcon(doc.document_type)}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">
+                                                    {doc.original_filename}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {formatFileSize(doc.file_size)} •{" "}
+                                                    {new Date(doc.created_at).toLocaleDateString("ru-RU")}
+                                                    {doc.is_indexed && (
+                                                        <span className="ml-2 text-green-600">
+                                                            • Проиндексировано
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
             </div>
         </div>
     );

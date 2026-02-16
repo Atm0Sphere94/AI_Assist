@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Calendar as CalendarIcon, Upload, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import {
     startOfMonth,
@@ -95,7 +99,7 @@ export default function CalendarPage() {
         return (
             <div className="grid grid-cols-7 gap-1">
                 {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => (
-                    <div key={day} className="p-2 text-center font-medium text-sm bg-gray-100 dark:bg-gray-800">
+                    <div key={day} className="p-2 text-center font-medium text-sm">
                         {day}
                     </div>
                 ))}
@@ -105,10 +109,10 @@ export default function CalendarPage() {
                     const isToday = isSameDay(day, new Date());
 
                     return (
-                        <div
+                        <Card
                             key={day.toISOString()}
-                            className={`min-h-24 p-2 border rounded ${!isCurrentMonth ? "opacity-40 bg-gray-50 dark:bg-gray-900" : "bg-white dark:bg-gray-800"
-                                } ${isToday ? "border-2 border-blue-500" : "border-gray-200 dark:border-gray-700"}`}
+                            className={`min-h-24 p-2 ${!isCurrentMonth ? "opacity-40" : ""
+                                } ${isToday ? "border-2 border-primary" : ""}`}
                         >
                             <div className="text-right text-sm mb-1">{format(day, "d")}</div>
                             <div className="space-y-1">
@@ -121,14 +125,98 @@ export default function CalendarPage() {
                                     </div>
                                 ))}
                                 {dayEvents.length > 2 && (
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-muted-foreground">
                                         +{dayEvents.length - 2} ещё
                                     </div>
                                 )}
                             </div>
+                        </Card>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const renderWeekView = () => {
+        const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+        const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+
+        return (
+            <div className="flex gap-1">
+                <div className="w-16">
+                    <div className="h-12" />
+                    {hours.map((hour) => (
+                        <div key={hour} className="h-12 text-xs text-right pr-2 text-muted-foreground">
+                            {hour}:00
+                        </div>
+                    ))}
+                </div>
+                {weekDays.map((day) => {
+                    const dayEvents = getEventsForDate(day);
+                    return (
+                        <div key={day.toISOString()} className="flex-1">
+                            <div className="h-12 text-center border-b p-2">
+                                <div className="font-medium">{format(day, "EEE", { locale: ru })}</div>
+                                <div className="text-sm text-muted-foreground">{format(day, "d MMM")}</div>
+                            </div>
+                            <div className="relative">
+                                {hours.map((hour) => (
+                                    <div key={hour} className="h-12 border-b border-border" />
+                                ))}
+                                {dayEvents.map((event) => {
+                                    const eventHour = new Date(event.start_time).getHours();
+                                    return (
+                                        <div
+                                            key={event.id}
+                                            className="absolute left-0 right-0 bg-blue-500 text-white p-1 text-xs rounded mx-1"
+                                            style={{ top: `${eventHour * 48}px`, height: "46px" }}
+                                        >
+                                            {event.title}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     );
                 })}
+            </div>
+        );
+    };
+
+    const renderDayView = () => {
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+        const dayEvents = getEventsForDate(currentDate);
+
+        return (
+            <div className="flex gap-4">
+                <div className="w-16">
+                    {hours.map((hour) => (
+                        <div key={hour} className="h-16 text-xs text-right pr-2 text-muted-foreground">
+                            {hour}:00
+                        </div>
+                    ))}
+                </div>
+                <div className="flex-1 relative">
+                    {hours.map((hour) => (
+                        <div key={hour} className="h-16 border-b border-border" />
+                    ))}
+                    {dayEvents.map((event) => {
+                        const eventHour = new Date(event.start_time).getHours();
+                        return (
+                            <div
+                                key={event.id}
+                                className="absolute left-0 right-0 bg-blue-500 text-white p-2 rounded mr-4"
+                                style={{ top: `${eventHour * 64}px`, height: "60px" }}
+                            >
+                                <div className="font-medium">{event.title}</div>
+                                {event.description && (
+                                    <div className="text-xs opacity-80">{event.description}</div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         );
     };
@@ -141,21 +229,28 @@ export default function CalendarPage() {
         return (
             <div className="space-y-2">
                 {sortedEvents.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">Нет событий</p>
+                    <p className="text-center text-muted-foreground py-8">Нет событий</p>
                 ) : (
                     sortedEvents.map((event) => (
-                        <div key={event.id} className="p-4 border rounded bg-white dark:bg-gray-800">
-                            <h3 className="font-medium">{event.title}</h3>
-                            {event.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    {event.description}
-                                </p>
-                            )}
-                            <p className="text-sm text-gray-500 mt-2">
-                                {format(new Date(event.start_time), "d MMMM yyyy, HH:mm", { locale: ru })}
-                                {event.end_time && ` - ${format(new Date(event.end_time), "HH:mm")}`}
-                            </p>
-                        </div>
+                        <Card key={event.id} className="p-4">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="font-medium">{event.title}</h3>
+                                    {event.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {event.description}
+                                        </p>
+                                    )}
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        {format(new Date(event.start_time), "d MMMM yyyy, HH:mm", {
+                                            locale: ru,
+                                        })}
+                                        {event.end_time &&
+                                            ` - ${format(new Date(event.end_time), "HH:mm")}`}
+                                    </p>
+                                </div>
+                            </div>
+                        </Card>
                     ))
                 )}
             </div>
@@ -166,8 +261,13 @@ export default function CalendarPage() {
         <div className="p-6 max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold">📅 Календарь</h1>
-                <div>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                        <CalendarIcon className="w-8 h-8" />
+                        Календарь
+                    </h1>
+                </div>
+                <div className="flex items-center gap-2">
                     <input
                         type="file"
                         accept=".ics"
@@ -176,9 +276,12 @@ export default function CalendarPage() {
                         id="ics-upload"
                     />
                     <label htmlFor="ics-upload">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded cursor-pointer hover:bg-blue-700">
-                            📥 Импорт .ics
-                        </span>
+                        <Button asChild>
+                            <span className="flex items-center gap-2 cursor-pointer">
+                                <Upload className="w-4 h-4" />
+                                Импорт .ics
+                            </span>
+                        </Button>
                     </label>
                 </div>
             </div>
@@ -186,24 +289,19 @@ export default function CalendarPage() {
             {/* Navigation */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigate("prev")}
-                        className="px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                        ◀
-                    </button>
-                    <button
+                    <Button variant="outline" size="sm" onClick={() => navigate("prev")}>
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentDate(new Date())}
-                        className="px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                         Сегодня
-                    </button>
-                    <button
-                        onClick={() => navigate("next")}
-                        className="px-3 py-1 border rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                    >
-                        ▶
-                    </button>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate("next")}>
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
                     <div className="text-lg font-medium ml-4">
                         {view === "month" && format(currentDate, "LLLL yyyy", { locale: ru })}
                         {view === "week" &&
@@ -215,39 +313,29 @@ export default function CalendarPage() {
                                 locale: ru,
                             })}`}
                         {view === "day" && format(currentDate, "d MMMM yyyy", { locale: ru })}
-                        {view === "list" && "Все события"}
                     </div>
                 </div>
 
-                <div className="flex gap-2">
-                    {["month", "week", "day", "list"].map((v) => (
-                        <button
-                            key={v}
-                            onClick={() => setView(v as any)}
-                            className={`px-3 py-1 rounded ${view === v
-                                    ? "bg-blue-600 text-white"
-                                    : "border hover:bg-gray-100 dark:hover:bg-gray-800"
-                                }`}
-                        >
-                            {v === "month" ? "Месяц" : v === "week" ? "Неделя" : v === "day" ? "День" : "Список"}
-                        </button>
-                    ))}
-                </div>
+                <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+                    <TabsList>
+                        <TabsTrigger value="month">Месяц</TabsTrigger>
+                        <TabsTrigger value="week">Неделя</TabsTrigger>
+                        <TabsTrigger value="day">День</TabsTrigger>
+                        <TabsTrigger value="list">Список</TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </div>
 
             {/* Calendar Views */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border p-4">
+            <div className="bg-card rounded-lg border p-4">
                 {loading ? (
                     <p className="text-center py-8">Загрузка...</p>
                 ) : (
                     <>
                         {view === "month" && renderMonthView()}
+                        {view === "week" && renderWeekView()}
+                        {view === "day" && renderDayView()}
                         {view === "list" && renderListView()}
-                        {(view === "week" || view === "day") && (
-                            <p className="text-center py-8 text-gray-500">
-                                Вид {view === "week" ? "недели" : "дня"} в разработке...
-                            </p>
-                        )}
                     </>
                 )}
             </div>
