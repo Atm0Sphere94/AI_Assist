@@ -7,9 +7,10 @@ from pydantic import BaseModel
 from typing import Optional
 
 from db import get_db
-from db.models import User, Document
+from db.models import User, Document, Folder
 from auth import get_current_user
 from services.document_service import DocumentService
+from services.folder_service import FolderService
 
 router = APIRouter(tags=["documents"])
 
@@ -127,3 +128,95 @@ async def delete_document(
         raise HTTPException(status_code=500, detail="Failed to delete document")
         
     return {"message": "Document deleted"}
+
+
+# Folder endpoints
+@router.get("/folders/tree")
+async def get_folder_tree(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get folder tree for current user."""
+    folder_service = FolderService(db)
+    tree = await folder_service.get_folder_tree(current_user.id)
+    
+    # Add document counts
+    doc_service = DocumentService(db)
+    async def add_counts(folder_item):
+        docs = await doc_service.list_documents(
+            user_id=current_user.id,
+            folder_id=folder_item['id'],
+            limit=1000,
+            recursive=False
+        )
+        folder_item['document_count'] = len(docs)
+        for child in folder_item.get('children', []):
+            await add_counts(child)
+    
+    for folder in tree:
+        await add_counts(folder)
+    
+    return {"folders": tree}
+
+
+@router.get("/folders/{folder_id}/files")
+async def get_folder_files(
+    folder_id: int,
+    limit: int = 50,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get files in a specific folder."""
+    folder = await db.get(Folder, folder_id)
+    if not folder or folder.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    doc_service = DocumentService(db)
+    documents = await doc_service.list_documents(
+        user_id=current_user.id,
+        folder_id=folder_id,
+        limit=limit,
+        offset=offset,
+        recursive=False
+    )
+    
+    return {
+        "folder_id": folder_id,
+        "folder_name": folder.name,
+        "documents": [DocumentResponse.model_validate(doc) for doc in documents],
+        "total": len(documents)
+    }
+
+
+@router.get("/search")
+async def search_documents(
+    q: str,
+    folder_id: Optional[int] = None,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Search documents by filename."""
+    from sqlalchemy import select, or_
+    
+    query = select(Document).where(Document.user_id == current_user.id)
+    query = query.where(
+        or_(
+            Document.filename.ilike(f"%{q}%"),
+            Document.original_filename.ilike(f"%{q}%")
+        )
+    )
+    
+    if folder_id is not None:
+        query = query.where(Document.folder_id == folder_id)
+    
+    query = query.limit(limit)
+    result = await db.execute(query)
+    documents = result.scalars().all()
+    
+    return {
+        "query": q,
+        "results": [DocumentResponse.model_validate(doc) for doc in documents],
+        "total": len(documents)
+    }

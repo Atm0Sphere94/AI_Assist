@@ -1,5 +1,6 @@
 """Celery tasks for cloud storage synchronization."""
 import logging
+import asyncio
 from datetime import datetime
 from celery import Task
 from sqlalchemy import select
@@ -39,7 +40,7 @@ class CallbackTask(Task):
 
 
 @celery_app.task(name="cloud.sync_yandex_disk", base=CallbackTask, bind=True)
-async def sync_yandex_disk(
+def sync_yandex_disk(
     self,
     storage_id: int,
     job_id: int
@@ -51,6 +52,15 @@ async def sync_yandex_disk(
         storage_id: CloudStorage ID
         job_id: CloudSyncJob ID
     """
+    asyncio.run(_sync_yandex_disk_async(self, storage_id, job_id))
+
+
+async def _sync_yandex_disk_async(
+    task_instance,
+    storage_id: int,
+    job_id: int
+):
+    """Async implementation of Yandex Disk sync."""
     async with async_session_factory() as db:
         try:
             # Get storage and job
@@ -64,6 +74,11 @@ async def sync_yandex_disk(
             # Update job status
             job.status = SyncStatus.IN_PROGRESS
             job.started_at = datetime.utcnow()
+            # Initialize counters if None
+            job.new_files = job.new_files or 0
+            job.failed_files = job.failed_files or 0
+            job.processed_files = job.processed_files or 0
+            job.total_files = job.total_files or 0
             
             # Ensure storage status reflects this (in case triggered automatically)
             storage.last_sync_status = SyncStatus.IN_PROGRESS
@@ -73,20 +88,30 @@ async def sync_yandex_disk(
             # Initialize Yandex Disk service
             yd_service = YandexDiskService(storage.access_token)
             
-            # Get list of files
-            files = await yd_service.list_files_recursively(
+            # Stream files and process as discovered
+            total_discovered = 0
+            processed = 0
+            
+            async for file_info in yd_service.stream_files_recursively(
                 path=storage.sync_path,
                 file_extensions=storage.file_filters,
                 exclude_patterns=storage.exclude_patterns,
                 included_paths=storage.included_paths
-            )
-            
-            job.total_files = len(files)
-            await db.commit()
-            
-            # Process each file
-            processed = 0
-            for file_info in files:
+            ):
+                total_discovered += 1
+                
+                # Skip image files - they don't contain searchable text
+                file_ext = os.path.splitext(file_info['name'])[1].lower()
+                if file_ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp']:
+                    logger.info(f"Skipping image file: {file_info['name']}")
+                    continue
+                
+                # Update total_files every 10 discovered files for progress visibility
+                if total_discovered % 10 == 0:
+                    job.total_files = total_discovered
+                    await db.commit()
+                    logger.info(f"Discovered {total_discovered} files so far...")
+                
                 try:
                     # Create file operation record
                     file_op = CloudFileOperation(
@@ -134,6 +159,15 @@ async def sync_yandex_disk(
                             # Process document (add to knowledge base)
                             rag_service = RAGService(db)
                             
+                            # Get or create folder hierarchy
+                            from services.folder_service import FolderService
+                            folder_service = FolderService(db)
+                            folder_path = os.path.dirname(file_info['path'])
+                            folder = await folder_service.get_or_create_folder_hierarchy(
+                                user_id=storage.user_id,
+                                path=folder_path
+                            )
+                            
                             if existing_doc:
                                 # Update existing document
                                 document = await doc_service.update_document(
@@ -141,7 +175,8 @@ async def sync_yandex_disk(
                                     file_hash=remote_hash,
                                     file_size=file_info.get('size', 0),
                                     updated_at=datetime.utcnow(),
-                                    is_indexed=False # Force re-indexing
+                                    is_indexed=False,  # Force re-indexing
+                                    folder_id=folder.id  # Update folder
                                 )
                                 job.updated_files += 1
                             else:
@@ -150,7 +185,8 @@ async def sync_yandex_disk(
                                     user_id=storage.user_id,
                                     file_path=local_path,
                                     original_filename=file_info['name'],
-                                    file_hash=remote_hash
+                                    file_hash=remote_hash,
+                                    folder_id=folder.id  # Assign to folder
                                 )
                                 job.new_files += 1
                             
@@ -166,9 +202,9 @@ async def sync_yandex_disk(
                         job.processed_files = processed
                     
                     # Update progress
-                    self.update_state(
+                    task_instance.update_state(
                         state='PROGRESS',
-                        meta={'current': processed, 'total': len(files)}
+                        meta={'current': processed, 'total': total_discovered}
                     )
                     
                 except Exception as e:
@@ -177,7 +213,17 @@ async def sync_yandex_disk(
                     file_op.error_message = str(e)
                     job.failed_files += 1
                 
-                await db.commit()
+                # Commit progress periodically (every 5 processed) for UI updates
+                if processed % 5 == 0:
+                    job.processed_files = processed
+                    await db.commit()
+                    logger.info(f"Progress: {processed}/{total_discovered} files processed")
+            
+            # Final update after streaming completes
+            job.total_files = total_discovered
+            job.processed_files = processed
+            await db.commit()
+            logger.info(f"Streaming completed: discovered {total_discovered}, processed {processed} files")
             
             # Complete job
             job.status = SyncStatus.COMPLETED
@@ -191,7 +237,7 @@ async def sync_yandex_disk(
             
             await db.commit()
             
-            logger.info(f"Yandex Disk sync completed: {processed}/{len(files)} files")
+            logger.info(f"Yandex Disk sync completed: {processed}/{total_discovered} files")
             
         except Exception as e:
             logger.error(f"Error in Yandex Disk sync: {e}", exc_info=True)
@@ -207,7 +253,7 @@ async def sync_yandex_disk(
 
 
 @celery_app.task(name="cloud.sync_obsidian_vault", base=CallbackTask, bind=True)
-async def sync_obsidian_vault(
+def sync_obsidian_vault(
     self,
     vault_id: int,
     job_id: int
@@ -219,6 +265,15 @@ async def sync_obsidian_vault(
         vault_id: ObsidianVault ID
         job_id: CloudSyncJob ID
     """
+    asyncio.run(_sync_obsidian_vault_async(self, vault_id, job_id))
+
+
+async def _sync_obsidian_vault_async(
+    task_instance,
+    vault_id: int,
+    job_id: int
+):
+    """Async implementation of Obsidian vault sync."""
     async with async_session_factory() as db:
         try:
             # Get vault and associated storage
@@ -312,7 +367,7 @@ async def sync_obsidian_vault(
                     processed += 1
                     job.processed_files = processed
                     
-                    self.update_state(
+                    task_instance.update_state(
                         state='PROGRESS',
                         meta={'current': processed, 'total': len(notes)}
                     )
@@ -346,11 +401,16 @@ async def sync_obsidian_vault(
 
 
 @celery_app.task(name="cloud.schedule_auto_sync")
-async def schedule_auto_sync():
+def schedule_auto_sync():
     """
     Scheduled task to trigger auto-sync for enabled storages.
     Runs every hour via Celery Beat.
     """
+    asyncio.run(_schedule_auto_sync_async())
+
+
+async def _schedule_auto_sync_async():
+    """Async implementation of auto-sync scheduler."""
     async with async_session_factory() as db:
         # Get all storages with auto-sync enabled
         result = await db.execute(

@@ -1,290 +1,191 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { documentsApi, foldersApi } from "@/lib/api";
-import { Folder as FolderIcon, FileText, ChevronRight, Home, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
-type Document = {
+interface FolderNode {
+    id: number;
+    name: string;
+    parent_id: number | null;
+    children: FolderNode[];
+    document_count: number;
+}
+
+interface Document {
     id: number;
     filename: string;
     original_filename: string;
     file_size: number;
     document_type: string;
-    is_processed: boolean;
     is_indexed: boolean;
+    created_at: string;
     folder_id: number | null;
-    created_at: string;
-};
-
-type Folder = {
-    id: number;
-    name: string;
-    parent_id: number | null;
-    created_at: string;
-};
+}
 
 export default function DocumentsPage() {
+    const [folders, setFolders] = useState<FolderNode[]>([]);
+    const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
     const [documents, setDocuments] = useState<Document[]>([]);
-    const [folders, setFolders] = useState<Folder[]>([]);
-    const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
-    const [breadcrumbs, setBreadcrumbs] = useState<{ id: number | null, name: string }[]>([{ id: null, name: "Документы" }]);
-    const [loading, setLoading] = useState(true);
-    const [uploading, setUploading] = useState(false);
-    const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-    const [newFolderName, setNewFolderName] = useState("");
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        fetchData(currentFolderId);
-    }, [currentFolderId]);
+        loadFolders();
+    }, []);
 
-    const fetchData = async (folderId: number | null) => {
+    useEffect(() => {
+        if (selectedFolder !== null) {
+            loadFolderDocuments(selectedFolder);
+        }
+    }, [selectedFolder]);
+
+    const loadFolders = async () => {
         try {
-            setLoading(true);
-            const [docsData, foldersData] = await Promise.all([
-                documentsApi.list(folderId || undefined),
-                foldersApi.list(folderId || undefined)
-            ]);
-            setDocuments(docsData);
-            setFolders(foldersData);
-
-            // Update breadcrumbs if needed (simple approach: maintain history or fetch path)
-            // For now, simple breadcrumb management:
-            if (folderId === null) {
-                setBreadcrumbs([{ id: null, name: "Документы" }]);
-            }
+            const response = await api.get("/documents/folders/tree");
+            setFolders(response.data.folders || []);
         } catch (error) {
-            console.error("Failed to fetch data:", error);
+            console.error("Error loading folders:", error);
+        }
+    };
+
+    const loadFolderDocuments = async (folderId: number) => {
+        setLoading(true);
+        try {
+            const response = await api.get(`/documents/folders/${folderId}/files`);
+            setDocuments(response.data.documents || []);
+        } catch (error) {
+            console.error("Error loading documents:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCreateFolder = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newFolderName.trim()) return;
-
-        try {
-            await foldersApi.create({
-                name: newFolderName,
-                parent_id: currentFolderId || undefined
-            });
-            setNewFolderName("");
-            setIsCreatingFolder(false);
-            fetchData(currentFolderId);
-        } catch (error) {
-            console.error("Failed to create folder:", error);
-            alert("Ошибка при создании папки");
-        }
-    };
-
-    const handleNavigate = async (folder: Folder) => {
-        setCurrentFolderId(folder.id);
-        setBreadcrumbs([...breadcrumbs, { id: folder.id, name: folder.name }]);
-    };
-
-    const handleNavigateUp = (index: number) => {
-        const target = breadcrumbs[index];
-        const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
-        setBreadcrumbs(newBreadcrumbs);
-        setCurrentFolderId(target.id);
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setUploading(true);
-            await documentsApi.upload(file, currentFolderId || undefined);
-            await fetchData(currentFolderId);
-        } catch (error) {
-            console.error("Failed to upload document:", error);
-            alert("Ошибка при загрузке файла");
-        } finally {
-            setUploading(false);
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
+    const handleSearch = async (query: string) => {
+        if (!query.trim()) {
+            if (selectedFolder) {
+                loadFolderDocuments(selectedFolder);
             }
+            return;
         }
-    };
 
-    const handleDeleteDocument = async (id: number) => {
-        if (!confirm("Вы уверены? Файл будет удален безвозвратно.")) return;
+        setLoading(true);
         try {
-            await documentsApi.delete(id);
-            setDocuments(documents.filter(d => d.id !== id));
+            const response = await api.get(`/documents/search?q=${encodeURIComponent(query)}`);
+            setDocuments(response.data.results || []);
         } catch (error) {
-            console.error("Failed to delete document:", error);
+            console.error("Error searching:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleDeleteFolder = async (e: React.MouseEvent, id: number) => {
-        e.stopPropagation();
-        if (!confirm("Вы уверены? Папка и все её содержимое (внимание!) будут удалены.")) return;
-        try {
-            await foldersApi.delete(id);
-            setFolders(folders.filter(f => f.id !== id));
-        } catch (error) {
-            console.error("Failed to delete folder:", error);
-            alert("Ошибка при удалении папки");
+    const getFileIcon = (type: string) => {
+        switch (type) {
+            case "pdf":
+                return "📄";
+            case "document":
+                return "📝";
+            case "image":
+                return "🖼️";
+            default:
+                return "📎";
         }
     };
 
-    const formatSize = (bytes: number) => {
-        if (bytes === 0) return "0 B";
-        const k = 1024;
-        const sizes = ["B", "KB", "MB", "GB"];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    };
+
+    const renderFolderTree = (nodes: FolderNode[], level = 0) => {
+        return nodes.map((node) => (
+            <div key={node.id} style={{ paddingLeft: `${level * 16}px` }}>
+                <button
+                    onClick={() => setSelectedFolder(node.id)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded transition
+            ${selectedFolder === node.id
+                            ? "bg-blue-100 dark:bg-blue-900 font-medium"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                >
+                    <span>📁</span>
+                    <span className="flex-1 text-left">{node.name}</span>
+                    {node.document_count > 0 && (
+                        <span className="text-xs text-gray-500">{node.document_count}</span>
+                    )}
+                </button>
+                {node.children && node.children.length > 0 && (
+                    <div>{renderFolderTree(node.children, level + 1)}</div>
+                )}
+            </div>
+        ));
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-2 text-xl font-medium text-gray-800 dark:text-gray-200 overflow-hidden">
-                    {breadcrumbs.map((crumb, index) => (
-                        <div key={index} className="flex items-center">
-                            {index > 0 && <ChevronRight size={20} className="text-gray-400 mx-1" />}
-                            <button
-                                onClick={() => handleNavigateUp(index)}
-                                className={`hover:text-blue-600 transition-colors ${index === breadcrumbs.length - 1 ? "font-bold text-gray-900 dark:text-white" : "text-gray-500"}`}
-                            >
-                                {index === 0 && <Home size={18} className="inline mb-1 mr-1" />}
-                                {crumb.name}
-                            </button>
-                        </div>
-                    ))}
+        <div className="flex h-screen">
+            {/* Sidebar */}
+            <div className="w-64 border-r bg-white dark:bg-gray-900">
+                <div className="p-4 border-b">
+                    <h2 className="font-semibold text-lg">📚 Документы</h2>
                 </div>
-
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setIsCreatingFolder(true)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 text-gray-700 dark:text-gray-200"
-                    >
-                        <Plus size={18} /> Новая папка
-                    </button>
-
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.txt,.md,.jpg,.jpeg,.png"
-                    />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {uploading ? "Загрузка..." : "📤 Загрузить файл"}
-                    </button>
+                <div className="overflow-auto h-[calc(100vh-73px)] p-2">
+                    {renderFolderTree(folders)}
                 </div>
             </div>
 
-            {/* New Folder Modal/Input */}
-            {isCreatingFolder && (
-                <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-blue-200 dark:border-blue-800">
-                    <form onSubmit={handleCreateFolder} className="flex gap-2 items-center">
-                        <FolderIcon size={20} className="text-blue-500" />
-                        <input
-                            type="text"
-                            autoFocus
-                            placeholder="Название папки"
-                            value={newFolderName}
-                            onChange={(e) => setNewFolderName(e.target.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        />
-                        <button
-                            type="submit"
-                            disabled={!newFolderName.trim()}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                        >
-                            Создать
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setIsCreatingFolder(false)}
-                            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        >
-                            Отмена
-                        </button>
-                    </form>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col">
+                {/* Search */}
+                <div className="p-4 border-b">
+                    <input
+                        type="text"
+                        placeholder="🔍 Поиск документов..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            handleSearch(e.target.value);
+                        }}
+                        className="w-full px-4 py-2 border rounded dark:bg-gray-800"
+                    />
                 </div>
-            )}
 
-            {loading ? (
-                <div className="flex justify-center p-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                </div>
-            ) : documents.length === 0 && folders.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 bg-white dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                    <p className="text-4xl mb-4 opacity-50">📂</p>
-                    <p className="text-lg">Папка пуста</p>
-                    <div className="flex justify-center gap-4 mt-4">
-                        <button onClick={() => setIsCreatingFolder(true)} className="text-blue-600 hover:underline">Создать папку</button>
-                        <span className="text-gray-300">|</span>
-                        <button onClick={() => fileInputRef.current?.click()} className="text-blue-600 hover:underline">Загрузить файл</button>
-                    </div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {/* Folders */}
-                    {folders.map((folder) => (
-                        <div
-                            key={`folder-${folder.id}`}
-                            onClick={() => handleNavigate(folder)}
-                            className="cursor-pointer bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-transparent hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all group flex flex-col justify-between h-32"
-                        >
-                            <div className="flex justify-between items-start">
-                                <FolderIcon size={40} className="text-blue-400 fill-blue-50 dark:fill-blue-900/20" />
-                                <button
-                                    onClick={(e) => handleDeleteFolder(e, folder.id)}
-                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                    title="Удалить папку"
+                {/* Documents */}
+                <div className="flex-1 overflow-auto p-4">
+                    {loading ? (
+                        <p className="text-center text-gray-500">Загрузка...</p>
+                    ) : documents.length === 0 ? (
+                        <p className="text-center text-gray-500">
+                            {selectedFolder
+                                ? "В этой папке нет документов"
+                                : "Выберите папку для просмотра документов"}
+                        </p>
+                    ) : (
+                        <div className="grid gap-2">
+                            {documents.map((doc) => (
+                                <div
+                                    key={doc.id}
+                                    className="p-4 border rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition"
                                 >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                            <h3 className="font-medium text-gray-800 dark:text-gray-100 truncate mt-2" title={folder.name}>
-                                {folder.name}
-                            </h3>
-                        </div>
-                    ))}
-
-                    {/* Documents */}
-                    {documents.map((doc) => (
-                        <div key={`doc-${doc.id}`} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition-all group relative flex flex-col justify-between h-32">
-                            <div className="flex justify-between items-start">
-                                <FileText size={40} className="text-gray-400 dark:text-gray-500" />
-                                <div className="flex gap-1">
-                                    {doc.is_indexed && (
-                                        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded-full" title="Индексирован">
-                                            ✓
-                                        </span>
-                                    )}
-                                    <button
-                                        onClick={() => handleDeleteDocument(doc.id)}
-                                        className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                        title="Удалить файл"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-2xl">{getFileIcon(doc.document_type)}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium truncate">{doc.original_filename}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {formatFileSize(doc.file_size)} •{" "}
+                                                {new Date(doc.created_at).toLocaleDateString("ru-RU")}
+                                                {doc.is_indexed && (
+                                                    <span className="ml-2 text-green-600">• ✓ Проиндексировано</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div>
-                                <h3 className="font-medium text-gray-800 dark:text-gray-200 truncate mb-1 text-sm" title={doc.original_filename}>
-                                    {doc.original_filename}
-                                </h3>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {formatSize(doc.file_size)}
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

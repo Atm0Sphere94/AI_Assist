@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import tempfile
+import os
 
 from db import get_db
 from db.models import User, CalendarEvent
@@ -90,3 +92,78 @@ async def delete_event(
     await db.delete(event)
     await db.commit()
     return {"message": "Event deleted"}
+
+
+@router.post("/import")
+async def import_ical(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Import calendar events from .ics file."""
+    if not file.filename.endswith('.ics'):
+        raise HTTPException(status_code=400, detail="Only .ics files are supported")
+    
+    try:
+        from icalendar import Calendar
+        
+        # Read file content
+        content = await file.read()
+        
+        # Parse iCal
+        cal = Calendar.from_ical(content)
+        
+        imported_count = 0
+        skipped_count = 0
+        
+        for component in cal.walk():
+            if component.name == "VEVENT":
+                try:
+                    title = str(component.get('summary', 'Untitled Event'))
+                    description = str(component.get('description', ''))
+                    start = component.get('dtstart').dt
+                    end = component.get('dtend')
+                    
+                    # Handle datetime/date types
+                    if hasattr(start, 'hour'):
+                        start_time = start
+                        is_all_day = False
+                    else:
+                        # Date only - all day event
+                        start_time = datetime.combine(start, datetime.min.time())
+                        is_all_day = True
+                    
+                    end_time = None
+                    if end:
+                        end_dt = end.dt
+                        if hasattr(end_dt, 'hour'):
+                            end_time = end_dt
+                        else:
+                            end_time = datetime.combine(end_dt, datetime.min.time())
+                    
+                    # Create event
+                    event = CalendarEvent(
+                        user_id=current_user.id,
+                        title=title,
+                        description=description if description else None,
+                        start_time=start_time,
+                        end_time=end_time,
+                        is_all_day=is_all_day
+                    )
+                    db.add(event)
+                    imported_count += 1
+                    
+                except Exception as e:
+                    skipped_count += 1
+                    continue
+        
+        await db.commit()
+        
+        return {
+            "message": f"Import completed",
+            "imported": imported_count,
+            "skipped": skipped_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")

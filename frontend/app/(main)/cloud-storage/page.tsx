@@ -262,12 +262,23 @@ function FolderBrowser({
                             >
                                 {item.type === 'dir' ? '📁' : '📄'} {item.name}
                             </span>
+                            {/* Visual indicator for selected folders */}
+                            {item.type === 'dir' && selectedPaths.includes(item.path) && (
+                                <span className="text-xs text-green-600 dark:text-green-400 font-medium" title="Все вложенные файлы будут синхронизированы">
+                                    ✓ +вложенные
+                                </span>
+                            )}
                         </div>
                     ))
                 )}
             </div>
             <div className="mt-2 pt-2 border-t text-xs text-gray-500 dark:border-gray-700">
                 Выбрано папок: {selectedPaths.length}
+                {selectedPaths.length > 0 && (
+                    <span className="ml-2 text-green-600 dark:text-green-400">
+                        (включая все вложенные файлы)
+                    </span>
+                )}
             </div>
         </div>
     );
@@ -714,7 +725,8 @@ export default function CloudStoragePage() {
                                     onSelectionChange={setSelectedFolders}
                                 />
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Выберите папки, файлы из которых нужно скачивать и индексировать.
+                                    <span className="inline-block mr-1">💡</span>
+                                    <strong>Примечание:</strong> При выборе папки автоматически синхронизируются все вложенные файлы и подпапки.
                                 </p>
                             </div>
 

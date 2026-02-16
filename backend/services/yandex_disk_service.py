@@ -90,7 +90,7 @@ class YandexDiskService:
         """
         try:
             # Get download URL
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(follow_redirects=True) as client:
                 response = await client.get(
                     f"{self.BASE_URL}/resources/download",
                     headers=self.headers,
@@ -99,9 +99,13 @@ class YandexDiskService:
                 response.raise_for_status()
                 download_url = response.json()["href"]
                 
-                # Download file
+                # Download file with redirect following
                 download_response = await client.get(download_url)
                 download_response.raise_for_status()
+                
+                # Ensure directory exists
+                import os
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
                 
                 # Save to local file
                 with open(local_path, "wb") as f:
@@ -206,6 +210,77 @@ class YandexDiskService:
             logger.error(f"Error listing files in {path}: {e}")
         
         return all_files
+    
+    async def stream_files_recursively(
+        self,
+        path: str = "/",
+        file_extensions: Optional[List[str]] = None,
+        exclude_patterns: Optional[List[str]] = None,
+        included_paths: Optional[List[str]] = None
+    ):
+        """
+        Stream files recursively using async generator.
+        Yields files as they are discovered instead of collecting all first.
+        
+        Args:
+            path: Starting directory path
+            file_extensions: Filter by file extensions (e.g., ['.pdf', '.docx'])
+            exclude_patterns: Patterns to exclude
+            included_paths: Only include files within these paths (if set)
+            
+        Yields:
+            File metadata dictionaries one by one
+        """
+        try:
+            result = await self.list_files(path)
+            
+            if "_embedded" not in result:
+                return
+            
+            items = result["_embedded"]["items"]
+            
+            for item in items:
+                # Check if path is within included_paths
+                if included_paths:
+                    is_included = False
+                    for include_path in included_paths:
+                        if item["path"].replace("disk:", "").startswith(include_path) or include_path.startswith(item["path"].replace("disk:", "")):
+                            is_included = True
+                            break
+                    if not is_included:
+                        continue
+
+                # Skip if matches exclude pattern
+                if exclude_patterns:
+                    skip = False
+                    for pattern in exclude_patterns:
+                        if pattern in item["path"]:
+                            skip = True
+                            break
+                    if skip:
+                        continue
+                
+                if item["type"] == "dir":
+                    # Recursively yield from subdirectory
+                    async for file in self.stream_files_recursively(
+                        item["path"],
+                        file_extensions,
+                        exclude_patterns,
+                        included_paths
+                    ):
+                        yield file
+                else:
+                    # Check file extension
+                    if file_extensions:
+                        file_ext = "." + item["name"].split(".")[-1] if "." in item["name"] else ""
+                        if file_ext.lower() not in [ext.lower() for ext in file_extensions]:
+                            continue
+                    
+                    # Yield file immediately
+                    yield item
+                    
+        except Exception as e:
+            logger.error(f"Error scanning directory {path}: {e}")
     
     def calculate_file_hash(self, file_path: str) -> str:
         """

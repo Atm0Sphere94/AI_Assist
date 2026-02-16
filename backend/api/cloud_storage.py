@@ -377,9 +377,25 @@ async def get_sync_status(
         )
         recent_files = files_result.scalars().all()
     
+    # Convert current_job to dict with datetime serialization
+    current_job_data = None
+    if current_job:
+        current_job_data = {
+            "id": current_job.id,
+            "storage_id": current_job.storage_id,
+            "status": current_job.status.value if hasattr(current_job.status, 'value') else current_job.status,
+            "total_files": current_job.total_files or 0,
+            "processed_files": current_job.processed_files or 0,
+            "failed_files": current_job.failed_files or 0,
+            "new_files": current_job.new_files or 0,
+            "started_at": current_job.started_at.isoformat() if current_job.started_at else None,
+            "completed_at": current_job.completed_at.isoformat() if current_job.completed_at else None,
+            "error_message": current_job.error_message
+        }
+    
     return SyncStatusResponse(
         storage=storage,
-        current_job=current_job,
+        current_job=current_job_data,
         progress=progress,
         recent_files=recent_files
     )

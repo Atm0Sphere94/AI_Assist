@@ -101,9 +101,17 @@ class RAGService:
                 logger.warning(f"No chunks created for document {document_id}")
                 return False
             
-            # Generate embeddings
+            # Generate embeddings in batches to avoid token limits
+            # OpenAI has a max of 300k tokens per request
+            MAX_CHUNKS_PER_BATCH = 100  # ~100k tokens with 1000 char chunks
+            embeddings = []
+            
             try:
-                embeddings = self.embeddings.embed_documents(chunks)
+                for i in range(0, len(chunks), MAX_CHUNKS_PER_BATCH):
+                    batch = chunks[i:i + MAX_CHUNKS_PER_BATCH]
+                    logger.info(f"Processing batch {i//MAX_CHUNKS_PER_BATCH + 1}/{(len(chunks)-1)//MAX_CHUNKS_PER_BATCH + 1} ({len(batch)} chunks)")
+                    batch_embeddings = self.embeddings.embed_documents(batch)
+                    embeddings.extend(batch_embeddings)
             except Exception as e:
                 logger.error(f"Error generating embeddings: {e}")
                 return False
