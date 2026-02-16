@@ -47,7 +47,7 @@ export default function DocumentsPage() {
 
     const loadFolders = async () => {
         try {
-            const response = await api.get("/documents/folders/tree");
+            const response = await api.get("/api/documents/folders/tree");
             setFolders(response.data.folders || []);
         } catch (error) {
             console.error("Error loading folders:", error);
@@ -57,7 +57,7 @@ export default function DocumentsPage() {
     const loadFolderDocuments = async (folderId: number) => {
         setLoading(true);
         try {
-            const response = await api.get(`/documents/folders/${folderId}/files`);
+            const response = await api.get(`/api/documents/folders/${folderId}/files`);
             setDocuments(response.data.documents || []);
         } catch (error) {
             console.error("Error loading documents:", error);
@@ -76,7 +76,7 @@ export default function DocumentsPage() {
 
         setLoading(true);
         try {
-            const response = await api.get(`/documents/search?q=${encodeURIComponent(query)}`);
+            const response = await api.get(`/api/documents/search?q=${encodeURIComponent(query)}`);
             setDocuments(response.data.results || []);
         } catch (error) {
             console.error("Error searching:", error);

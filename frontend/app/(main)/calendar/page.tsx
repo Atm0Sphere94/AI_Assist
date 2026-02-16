@@ -5,7 +5,7 @@ import { Calendar as CalendarIcon, Upload, ChevronLeft, ChevronRight, Plus } fro
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import { api, calendarApi } from "@/lib/api";
 import {
     startOfMonth,
     endOfMonth,
@@ -46,8 +46,8 @@ export default function CalendarPage() {
     const loadEvents = async () => {
         setLoading(true);
         try {
-            const response = await api.get("/calendar/");
-            setEvents(response.data);
+            const data = await calendarApi.list();
+            setEvents(data);
         } catch (error) {
             console.error("Error loading events:", error);
         } finally {
