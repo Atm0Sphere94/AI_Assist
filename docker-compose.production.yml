@@ -13,7 +13,7 @@ services:
       
       # Providers
       - "--providers.docker=true"
-      - "--providers.docker.apiVersion=1.44"
+      - "--providers.docker.version=1.44"
       - "--providers.docker.exposedbydefault=false"
       
       # Entrypoints
