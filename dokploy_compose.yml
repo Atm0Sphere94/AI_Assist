@@ -70,16 +70,16 @@ services:
     depends_on:
       - postgres
       - redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`api.aiwind.ru`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend.loadbalancer.server.port=8000"
-      - "traefik.docker.network=dokploy-network"
     deploy:
       restart_policy:
         condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ai-jarvis-backend.rule=Host(`api.aiwind.ru`)"
+        - "traefik.http.routers.ai-jarvis-backend.entrypoints=websecure"
+        - "traefik.http.routers.ai-jarvis-backend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.ai-jarvis-backend.loadbalancer.server.port=8000"
+        - "traefik.docker.network=dokploy-network"
 
   # Celery Worker
   celery_worker:
@@ -148,16 +148,16 @@ services:
       - dokploy-network
     depends_on:
       - backend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`app.aiwind.ru`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
-      - "traefik.docker.network=dokploy-network"
     deploy:
       restart_policy:
         condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ai-jarvis-frontend.rule=Host(`app.aiwind.ru`)"
+        - "traefik.http.routers.ai-jarvis-frontend.entrypoints=websecure"
+        - "traefik.http.routers.ai-jarvis-frontend.tls.certresolver=letsencrypt"
+        - "traefik.http.services.ai-jarvis-frontend.loadbalancer.server.port=3000"
+        - "traefik.docker.network=dokploy-network"
 
 volumes:
   ai_assist_postgres_data:
