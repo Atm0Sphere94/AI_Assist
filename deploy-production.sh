@@ -82,6 +82,8 @@ if [ "$USE_EXISTING" != "true" ]; then
     echo ""
     read -p "Telegram Bot Token: " TELEGRAM_TOKEN
     read -p "Telegram Bot Username (without @): " BOT_USERNAME
+    # Remove @ if present
+    BOT_USERNAME=${BOT_USERNAME//@/}
     read -p "Your Telegram ID (admin): " ADMIN_TELEGRAM_ID
     
     # OpenAI
@@ -117,6 +119,9 @@ ACME_EMAIL=$ACME_EMAIL
 # DNS Provider
 DNS_PROVIDER=$DNS_PROVIDER
 EOF
+
+    # Also create standard .env for docker-compose if it doesn't exist or we want to overwrite
+    cp .env.production .env
 
     # Add DNS credentials
     case $DNS_CHOICE in
