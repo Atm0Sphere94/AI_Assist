@@ -8,7 +8,11 @@ def get_main_menu_keyboard() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.row(
         KeyboardButton(text="📝 Новая задача"),
+        KeyboardButton(text="📋 Мои задачи"),
+    )
+    builder.row(
         KeyboardButton(text="📅 Календарь"),
+        KeyboardButton(text="🗓️ Мое расписание"),
     )
     builder.row(
         KeyboardButton(text="⏰ Напоминание"),

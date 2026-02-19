@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db, User
 from telegram.keyboards import get_main_menu_keyboard, get_back_to_menu_keyboard
 from telegram.states import MainStates
+from services.task_service import TaskService
+from services.calendar_service import CalendarService
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -142,11 +144,57 @@ async def cmd_new_task(message: Message):
     await message.answer("📝 <b>Новая задача</b>\n\nНапишите, что нужно сделать?\n<i>Например: Купить продукты вечером</i>")
 
 
+@router.message(Command("my_tasks"))
+@router.message(F.text == "📋 Мои задачи")
+async def cmd_my_tasks(message: Message):
+    """Handle /my_tasks command and button."""
+    user_id = message.from_user.id
+    
+    async for session in get_db():
+        task_service = TaskService(session)
+        tasks = await task_service.get_user_tasks(user_id)
+        
+        if not tasks:
+            await message.answer("📋 У вас пока нет задач.")
+            return
+
+        response = "📋 <b>Ваши задачи:</b>\n\n"
+        for task in tasks[:10]:  # Limit to 10
+            status = "✅" if task.status == "completed" else "⬜"
+            response += f"{status} <b>{task.title}</b>\n"
+            if task.due_date:
+                response += f"   📅 {task.due_date.strftime('%d.%m.%Y %H:%M')}\n"
+        
+        await message.answer(response)
+
+
 @router.message(Command("calendar"))
 @router.message(F.text == "📅 Календарь")
 async def cmd_calendar(message: Message):
     """Handle /calendar command and button."""
     await message.answer("📅 <b>Календарь</b>\n\nКакое событие запланировать?\n<i>Например: Встреча с командой завтра в 10:00</i>")
+
+
+@router.message(Command("my_schedule"))
+@router.message(F.text == "🗓️ Мое расписание")
+async def cmd_my_schedule(message: Message):
+    """Handle /my_schedule command and button."""
+    user_id = message.from_user.id
+    
+    async for session in get_db():
+        calendar_service = CalendarService(session)
+        events = await calendar_service.get_user_events(user_id)
+        
+        if not events:
+            await message.answer("🗓️ В расписании пока пусто.")
+            return
+
+        response = "🗓️ <b>Ваше расписание:</b>\n\n"
+        for event in events[:10]:
+            start_str = event.start_time.strftime('%d.%m %H:%M')
+            response += f"🕒 <b>{start_str}</b> — {event.title}\n"
+        
+        await message.answer(response)
 
 
 @router.message(Command("remind"))
