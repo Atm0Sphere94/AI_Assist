@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
     File, Folder, Search, FileText, FileCode, Image as ImageIcon,
     Grid, List, Upload, Plus, Download, Trash2, MoreVertical,
-    ChevronRight, Home, ArrowLeft
+    ChevronRight, ChevronDown, Home, ArrowLeft
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ export default function DocumentsPage() {
     const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [currentSubfolders, setCurrentSubfolders] = useState<FolderNode[]>([]);
+    const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -50,6 +51,12 @@ export default function DocumentsPage() {
     useEffect(() => {
         if (selectedFolder !== null) {
             loadFolderContent(selectedFolder);
+            // Auto-expand the selected folder in the tree
+            setExpandedFolders(prev => {
+                const newSet = new Set(prev);
+                newSet.add(selectedFolder);
+                return newSet;
+            });
         } else {
             // Root view
             setDocuments([]);
@@ -122,8 +129,26 @@ export default function DocumentsPage() {
     };
 
     const handleFolderClick = (folderId: number) => {
-        setSelectedFolder(folderId);
-        setSearchQuery("");
+        if (selectedFolder === folderId) {
+            // Toggle expansion if clicking already selected folder
+            toggleFolderExpansion(folderId);
+        } else {
+            setSelectedFolder(folderId);
+            setSearchQuery("");
+        }
+    };
+
+    const toggleFolderExpansion = (folderId: number, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setExpandedFolders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(folderId)) {
+                newSet.delete(folderId);
+            } else {
+                newSet.add(folderId);
+            }
+            return newSet;
+        });
     };
 
     const handleNavigateUp = () => {
@@ -152,35 +177,58 @@ export default function DocumentsPage() {
     };
 
     const renderFolderTree = (nodes: FolderNode[], level = 0) => {
-        return nodes.map((node) => (
-            <div key={node.id} style={{ paddingLeft: level === 0 ? 0 : '16px' }}>
-                <button
-                    onClick={() => handleFolderClick(node.id)}
-                    className={cn(
-                        "w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors mb-1",
-                        selectedFolder === node.id
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    <Folder className={cn(
-                        "w-4 h-4",
-                        selectedFolder === node.id ? "text-primary fill-primary/20" : "text-amber-500"
-                    )} />
-                    <span className="flex-1 text-left truncate">{node.name}</span>
-                    {node.document_count > 0 && (
-                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full">
-                            {node.document_count}
-                        </span>
-                    )}
-                </button>
-                {node.children && node.children.length > 0 && (
-                    <div className="border-l border-border/50 ml-3">
-                        {renderFolderTree(node.children, level + 1)}
+        return nodes.map((node) => {
+            const isExpanded = expandedFolders.has(node.id);
+            const hasChildren = node.children && node.children.length > 0;
+
+            return (
+                <div key={node.id} style={{ paddingLeft: level === 0 ? 0 : '12px' }}>
+                    <div className="flex items-center gap-1 mb-1">
+                        {hasChildren ? (
+                            <button
+                                onClick={(e) => toggleFolderExpansion(node.id, e)}
+                                className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {isExpanded ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                )}
+                            </button>
+                        ) : (
+                            <span className="w-5" />
+                        )}
+
+                        <button
+                            onClick={() => handleFolderClick(node.id)}
+                            className={cn(
+                                "flex-1 flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
+                                selectedFolder === node.id
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <Folder className={cn(
+                                "w-4 h-4",
+                                selectedFolder === node.id ? "text-primary fill-primary/20" : "text-amber-500"
+                            )} />
+                            <span className="flex-1 text-left truncate">{node.name}</span>
+                            {node.document_count > 0 && (
+                                <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground/70">
+                                    {node.document_count}
+                                </span>
+                            )}
+                        </button>
                     </div>
-                )}
-            </div>
-        ));
+
+                    {hasChildren && isExpanded && (
+                        <div className="border-l border-border/40 ml-2.5">
+                            {renderFolderTree(node.children, level + 1)}
+                        </div>
+                    )}
+                </div>
+            );
+        });
     };
 
     return (
