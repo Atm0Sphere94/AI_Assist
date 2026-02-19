@@ -49,6 +49,13 @@ async def get_events(
 ):
     # Basic list for now, filtering can be added to service
     query = select(CalendarEvent).where(CalendarEvent.user_id == current_user.id)
+    
+    # Ensure datetimes are naive for asyncpg/Postgres TIMESTAMP WITHOUT TIME ZONE
+    if start_date and start_date.tzinfo:
+        start_date = start_date.replace(tzinfo=None)
+    if end_date and end_date.tzinfo:
+        end_date = end_date.replace(tzinfo=None)
+        
     if start_date:
         query = query.where(CalendarEvent.start_time >= start_date)
     if end_date:
@@ -64,12 +71,21 @@ async def create_event(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Ensure datetimes are naive
+    start_time = event_data.start_time
+    if start_time.tzinfo:
+        start_time = start_time.replace(tzinfo=None)
+        
+    end_time = event_data.end_time
+    if end_time and end_time.tzinfo:
+        end_time = end_time.replace(tzinfo=None)
+
     event = CalendarEvent(
         user_id=current_user.id,
         title=event_data.title,
         description=event_data.description,
-        start_time=event_data.start_time,
-        end_time=event_data.end_time,
+        start_time=start_time,
+        end_time=end_time,
         is_all_day=event_data.is_all_day
     )
     db.add(event)
