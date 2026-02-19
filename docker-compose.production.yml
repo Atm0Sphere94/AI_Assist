@@ -120,6 +120,7 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - QDRANT_URL=http://qdrant:6333
       - PRODUCTION=true
+      - ALLOWED_ORIGINS=https://app.${DOMAIN},https://api.${DOMAIN},https://app.aiwind.ru,https://api.aiwind.ru
     volumes:
       - ./backend:/app
       - uploads:/app/uploads
