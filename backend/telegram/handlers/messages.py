@@ -33,12 +33,24 @@ async def message_handler(message: Message, state: FSMContext):
         logger.warning(f"Failed to send typing action: {e}")
     
     try:
-        # Get current FSM state data for context
+        # Get current user and settings
+        from db import get_db_session
+        from services.user_service import get_or_create_user
+        
+        async with get_db_session() as session:
+             user = await get_or_create_user(session, user_id, {
+                 "username": message.from_user.username,
+                 "first_name": message.from_user.first_name
+             })
+             user_settings = user.settings or {}
+             system_prompt = user_settings.get("system_prompt", "")
+
         state_data = await state.get_data()
         context = {
             "chat_id": message.chat.id,
             "username": message.from_user.username,
             "first_name": message.from_user.first_name,
+            "system_prompt": system_prompt, # Pass prompt to context
             **state_data
         }
         

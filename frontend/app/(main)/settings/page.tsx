@@ -1,51 +1,77 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { settingsApi } from "@/lib/api";
+import { api, settingsApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
+
+// Define User type locally or import if available
+interface User {
+    id: number;
+    telegram_id: number;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    language_code?: string;
+    settings?: {
+        system_prompt?: string;
+    };
+}
 
 export default function SettingsPage() {
     const router = useRouter();
-    const [profile, setProfile] = useState<any>(null);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
+    // Form state
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [username, setUsername] = useState("");
+    const [languageCode, setLanguageCode] = useState("ru");
+    const [systemPrompt, setSystemPrompt] = useState("");
+
     useEffect(() => {
-        fetchProfile();
+        loadProfile();
     }, []);
 
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
         try {
             setLoading(true);
-            const data = await settingsApi.getProfile();
-            setProfile(data);
+            const { data } = await api.get("/api/settings/profile");
+            setUser(data);
+            setFirstName(data.first_name || "");
+            setLastName(data.last_name || "");
+            setUsername(data.username || "");
+            setLanguageCode(data.language_code || "ru");
+            setSystemPrompt(data.settings?.system_prompt || "");
         } catch (error) {
-            console.error("Failed to fetch profile:", error);
+            console.error("Failed to load profile:", error);
             setMessage({ text: "Не удалось загрузить профиль", type: "error" });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaving(true);
+        setMessage(null);
         try {
-            setSaving(true);
-            setMessage(null);
-
-            const updated = await settingsApi.updateProfile({
-                first_name: profile.first_name,
-                last_name: profile.last_name,
-                username: profile.username,
-                language_code: profile.language_code
+            const { data } = await api.put("/api/settings/profile", {
+                first_name: firstName,
+                last_name: lastName,
+                username: username,
+                language_code: languageCode,
+                settings: {
+                    system_prompt: systemPrompt
+                }
             });
-
-            setProfile(updated);
-            setMessage({ text: "Профиль успешно обновлен", type: "success" });
+            setUser(data);
+            setMessage({ text: "Настройки сохранены!", type: "success" });
         } catch (error) {
-            console.error("Failed to update profile:", error);
-            setMessage({ text: "Ошибка при сохранении", type: "error" });
+            console.error("Failed to save profile:", error);
+            setMessage({ text: "Ошибка при сохранении настроек.", type: "error" });
         } finally {
             setSaving(false);
         }
@@ -72,7 +98,7 @@ export default function SettingsPage() {
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
                 <h2 className="text-xl font-semibold mb-6 text-gray-700 dark:text-gray-200">Профиль пользователя</h2>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSave} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -80,8 +106,8 @@ export default function SettingsPage() {
                             </label>
                             <input
                                 type="text"
-                                value={profile?.first_name || ""}
-                                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
@@ -92,8 +118,8 @@ export default function SettingsPage() {
                             </label>
                             <input
                                 type="text"
-                                value={profile?.last_name || ""}
-                                onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
@@ -104,8 +130,8 @@ export default function SettingsPage() {
                             </label>
                             <input
                                 type="text"
-                                value={profile?.username || ""}
-                                onChange={(e) => setProfile({ ...profile, username: e.target.value })}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                             />
                         </div>
@@ -116,9 +142,29 @@ export default function SettingsPage() {
                             </label>
                             <input
                                 type="text"
-                                value={profile?.language_code || ""}
-                                onChange={(e) => setProfile({ ...profile, language_code: e.target.value })}
+                                value={languageCode}
+                                onChange={(e) => setLanguageCode(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-lg font-medium mb-4 text-gray-700 dark:text-gray-200">Настройки AI</h3>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Базовый промпт (System Prompt)
+                            </label>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                Добавьте сюда инструкции, которые нейросеть будет учитывать в каждом диалоге.
+                                Например: "Отвечай как пират", "Всегда предлагай план действий".
+                            </p>
+                            <textarea
+                                value={systemPrompt}
+                                onChange={(e) => setSystemPrompt(e.target.value)}
+                                rows={4}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-y"
+                                placeholder="Введите дополнительные инструкции для AI..."
                             />
                         </div>
                     </div>
@@ -126,7 +172,7 @@ export default function SettingsPage() {
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                             <div className="text-sm text-gray-500">
-                                Telegram ID: <span className="font-mono">{profile?.telegram_id}</span>
+                                Telegram ID: <span className="font-mono">{user?.telegram_id}</span>
                             </div>
                             <button
                                 type="submit"

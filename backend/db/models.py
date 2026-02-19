@@ -20,6 +20,9 @@ class User(Base):
     last_name = Column(String, nullable=True)
     language_code = Column(String, default="en")
     
+    # Global AI Settings
+    settings = Column(JSON, default={}, nullable=True)
+    
     # Admin credentials (for web login)
     admin_username = Column(String, unique=True, nullable=True, index=True)
     admin_password_hash = Column(String, nullable=True)

@@ -105,8 +105,10 @@ async def router_node(state: AgentState) -> AgentState:
 async def general_response_node(state: AgentState) -> AgentState:
     """Handle general conversation."""
     messages = state["messages"]
+    context = state.get("context", {})
+    user_system_prompt = context.get("system_prompt", "")
     
-    system_prompt = """Ты AI ассистент Jarvis (Джарвис). 
+    base_system_prompt = """Ты AI ассистент Jarvis (Джарвис). 
 Твоя цель - быть максимально полезным помощником для пользователя.
 
 ТВОИ ВОЗМОЖНОСТИ:
@@ -134,10 +136,15 @@ async def general_response_node(state: AgentState) -> AgentState:
 
 Отвечай вежливо, коротко и по делу. Используй эмодзи.
 Если пользователь спрашивает "что ты умеешь?", используй список возможностей выше."""
+
+    # Append user's custom prompt if available
+    full_system_prompt = base_system_prompt
+    if user_system_prompt:
+        full_system_prompt += f"\n\nВАЖНЫЕ ИНСТРУКЦИИ ОТ ПОЛЬЗОВАТЕЛЯ:\n{user_system_prompt}"
     
     try:
         response = await llm.ainvoke([
-            SystemMessage(content=system_prompt),
+            SystemMessage(content=full_system_prompt),
             *messages
         ])
         
