@@ -220,3 +220,23 @@ async def search_documents(
         "results": [DocumentResponse.model_validate(doc) for doc in documents],
         "total": len(documents)
     }
+    return {
+        "query": q,
+        "results": [DocumentResponse.model_validate(doc) for doc in documents],
+        "total": len(documents)
+    }
+
+@router.delete("/folders/{folder_id}")
+async def delete_folder(
+    folder_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete a folder and all its contents."""
+    service = FolderService(db)
+    success = await service.delete_folder(folder_id, current_user.id)
+    
+    if not success:
+        raise HTTPException(status_code=404, detail="Folder not found or permission denied")
+        
+    return {"message": "Folder deleted successfully"}

@@ -239,6 +239,10 @@ export const documentsApi = {
         const { data } = await api.delete(`/api/documents/${documentId}`);
         return data;
     },
+    deleteFolder: async (folderId: number) => {
+        const { data } = await api.delete(`/api/documents/folders/${folderId}`);
+        return data;
+    }
 };
 
 // Knowledge Base API

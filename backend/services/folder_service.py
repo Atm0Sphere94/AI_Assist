@@ -149,3 +149,47 @@ class FolderService:
             })
         
         return tree
+    
+    async def delete_folder(self, folder_id: int, user_id: int) -> bool:
+        """
+        Delete folder and all its contents recursively.
+        
+        Args:
+            folder_id: Folder ID to delete
+            user_id: User ID (for ownership check)
+            
+        Returns:
+            True if deleted, False if validation failed
+        """
+        folder = await self.db.get(Folder, folder_id)
+        if not folder or folder.user_id != user_id:
+            return False
+            
+        # Get all children (subfolders)
+        stmt = select(Folder).where(Folder.parent_id == folder_id)
+        result = await self.db.execute(stmt)
+        children = result.scalars().all()
+        
+        # Recursively delete children
+        for child in children:
+            await self.delete_folder(child.id, user_id)
+            
+        # Delete documents in this folder
+        # We need to import DocumentService here to avoid circular ref at module level
+        from services.document_service import DocumentService
+        doc_service = DocumentService(self.db)
+        
+        # Get documents
+        from db.models import Document
+        stmt = select(Document).where(Document.folder_id == folder_id)
+        result = await self.db.execute(stmt)
+        documents = result.scalars().all()
+        
+        for doc in documents:
+            await doc_service.delete_document(doc.id)
+            
+        # Finally delete the folder itself
+        await self.db.delete(folder)
+        await self.db.commit()
+        
+        return True

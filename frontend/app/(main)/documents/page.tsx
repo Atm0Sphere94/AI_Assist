@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/lib/api";
+import { api, documentsApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface FolderNode {
@@ -149,6 +149,38 @@ export default function DocumentsPage() {
             }
             return newSet;
         });
+    };
+
+    const handleDeleteDocument = async (id: number) => {
+        if (!confirm("Вы уверены, что хотите удалить этот документ?")) return;
+        try {
+            await documentsApi.delete(id);
+            if (selectedFolder) {
+                loadFolderContent(selectedFolder);
+            } else {
+                const docs = await documentsApi.list(undefined, false);
+                setDocuments(docs);
+            }
+        } catch (error) {
+            console.error("Failed to delete document:", error);
+            alert("Не удалось удалить документ");
+        }
+    };
+
+    const handleDeleteFolder = async (id: number) => {
+        if (!confirm("Вы уверены, что хотите удалить эту папку и все её содержимое?")) return;
+        try {
+            await documentsApi.deleteFolder(id);
+            await loadFolders(); // Refresh tree
+            if (selectedFolder === id) {
+                setSelectedFolder(null);
+            } else if (selectedFolder) {
+                loadFolderContent(selectedFolder);
+            }
+        } catch (error) {
+            console.error("Failed to delete folder:", error);
+            alert("Не удалось удалить папку");
+        }
     };
 
     const handleNavigateUp = () => {
@@ -386,6 +418,21 @@ export default function DocumentsPage() {
                                                 <span>{folder.document_count} файлов</span>
                                             </div>
                                         </div>
+                                        {/* Hover Actions for Folder */}
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                            <Button
+                                                size="icon"
+                                                variant="secondary"
+                                                className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                                                title="Удалить папку"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteFolder(folder.id);
+                                                }}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
                                     </Card>
                                 ))}
 
@@ -414,7 +461,16 @@ export default function DocumentsPage() {
                                             <Button size="icon" variant="secondary" className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-background" title="Скачать">
                                                 <Download className="w-3.5 h-3.5" />
                                             </Button>
-                                            <Button size="icon" variant="secondary" className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-destructive hover:text-destructive-foreground" title="Удалить">
+                                            <Button
+                                                size="icon"
+                                                variant="secondary"
+                                                className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                                                title="Удалить"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteDocument(doc.id);
+                                                }}
+                                            >
                                                 <Trash2 className="w-3.5 h-3.5" />
                                             </Button>
                                         </div>
@@ -453,9 +509,30 @@ export default function DocumentsPage() {
                                                 <td className="px-4 py-3 text-muted-foreground">
                                                     -
                                                 </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                <td className="px-4 py-3 text-right flex justify-end gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Navigate to folder
+                                                            handleFolderClick(folder.id);
+                                                        }}
+                                                    >
                                                         <ChevronRight className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        title="Удалить папку"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteFolder(folder.id);
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 </td>
                                             </tr>
@@ -477,8 +554,17 @@ export default function DocumentsPage() {
                                                     {new Date(doc.created_at).toLocaleDateString("ru-RU")}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                                        <MoreVertical className="w-4 h-4" />
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                        title="Удалить"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteDocument(doc.id);
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
                                                 </td>
                                             </tr>
