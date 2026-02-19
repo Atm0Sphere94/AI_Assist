@@ -15,8 +15,14 @@ export function TelegramLogin() {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || "v1tar_bot";
-        console.log("Telegram Login Config:", { botUsername });
+        const rawBotUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || "v1tar_bot";
+        // Ensure username does NOT have @ for the widget to work
+        const botUsername = rawBotUsername.replace('@', '');
+
+        console.log("Telegram Login Config:", {
+            configured: rawBotUsername,
+            sanitized: botUsername
+        });
 
         if (!botUsername) {
             console.error("Telegram Login Error: NEXT_PUBLIC_BOT_USERNAME is not set!");
