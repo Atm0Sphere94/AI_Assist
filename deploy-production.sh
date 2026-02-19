@@ -81,9 +81,7 @@ if [ "$USE_EXISTING" != "true" ]; then
     # Telegram
     echo ""
     read -p "Telegram Bot Token: " TELEGRAM_TOKEN
-    read -p "Telegram Bot Username (without @): " BOT_USERNAME
-    # Remove @ if present
-    BOT_USERNAME=${BOT_USERNAME//@/}
+    read -p "Telegram Bot Username: " BOT_USERNAME
     read -p "Your Telegram ID (admin): " ADMIN_TELEGRAM_ID
     
     # OpenAI
