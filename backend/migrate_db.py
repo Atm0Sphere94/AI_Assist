@@ -24,9 +24,16 @@ async def migrate():
         try:
             await session.execute(text("ALTER TABLE documents ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES folders(id);"))
         except Exception as e:
-            # Postgres < 9.6 might not support IF NOT EXISTS for columns, but we are likely on newer.
-            # Fallback for errors
-            print(f"Notice: {e}")
+            print(f"Notice (documents): {e}")
+
+        # 3. Add settings column to users
+        print("Adding settings column to users...")
+        try:
+            # Check if column exists first to avoid error block if possible, or just use IF NOT EXISTS if PG supports it (PG 9.6+ does)
+            # SQLAlchemy text() passes through to DB.
+            await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSON DEFAULT '{}'::json;"))
+        except Exception as e:
+            print(f"Notice (users settings): {e}")
             
         await session.commit()
         print("Migration complete.")
