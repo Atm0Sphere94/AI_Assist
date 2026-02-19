@@ -70,6 +70,10 @@ export const cloudStorageApi = {
     listRemoteFiles: async (params: any) => {
         const { data } = await api.get("/api/cloud-storage/list-remote-files", { params });
         return data;
+    },
+    disconnect: async (storageId: number) => {
+        const { data } = await api.delete(`/api/cloud-storage/${storageId}`);
+        return data;
     }
 };
 

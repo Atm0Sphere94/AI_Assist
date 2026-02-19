@@ -458,6 +458,18 @@ export default function CloudStoragePage() {
         }
     };
 
+    const handleDisconnect = async (id: number) => {
+        if (!confirm("Вы уверены, что хотите отключить это хранилище? Все синхронизированные файлы останутся, но синхронизация остановится.")) return;
+
+        try {
+            await cloudStorageApi.disconnect(id);
+            setStorages(storages.filter(s => s.id !== id));
+        } catch (error) {
+            console.error("Failed to disconnect storage:", error);
+            alert("Не удалось отключить хранилище.");
+        }
+    };
+
     const getIcon = (type: string) => {
         switch (type) {
             case "yandex_disk": return "🛸";
@@ -595,6 +607,16 @@ export default function CloudStoragePage() {
                                     title="Настройки"
                                 >
                                     ⚙️
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDisconnect(storage.id);
+                                    }}
+                                    className="px-3 py-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 rounded-lg transition-colors border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    title="Отключить"
+                                >
+                                    🗑️
                                 </button>
                             </div>
                         </div>
