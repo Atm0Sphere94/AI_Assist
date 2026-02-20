@@ -34,10 +34,15 @@ celery_app.conf.beat_schedule = {
         'task': 'cloud.schedule_auto_sync',
         'schedule': crontab(minute=0),  # Every hour
     },
+    'auto-daily-digest': {
+        'task': 'tasks.send_daily_digest',
+        'schedule': crontab(minute=0, hour=6),  # 06:00 UTC -> 09:00 MSK Every day
+    },
 }
 
 # Explicitly import tasks
 celery_app.conf.imports = [
     'tasks.reminders',
     'tasks.cloud_sync_tasks',
+    'tasks.daily_digest',
 ]
