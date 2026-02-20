@@ -38,9 +38,31 @@ export const authApi = {
 };
 
 // Chat API
+export interface ChatSession {
+    id: number;
+    title: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ChatMessage {
+    id: number;
+    role: "user" | "assistant" | "system";
+    content: string;
+    created_at: string;
+}
+
 export const chatApi = {
-    sendMessage: async (message: string) => {
-        const { data } = await api.post("/api/chat/message", { message });
+    sendMessage: async (message: string, sessionId?: number) => {
+        const { data } = await api.post("/api/chat/message", { message, session_id: sessionId });
+        return data; // { message, session_id }
+    },
+    getSessions: async (): Promise<ChatSession[]> => {
+        const { data } = await api.get("/api/chat/sessions");
+        return data;
+    },
+    getSessionMessages: async (sessionId: number): Promise<ChatMessage[]> => {
+        const { data } = await api.get(`/api/chat/sessions/${sessionId}/messages`);
         return data;
     },
 };

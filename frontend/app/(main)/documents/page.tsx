@@ -189,16 +189,33 @@ export default function DocumentsPage() {
         setSelectedFolder(current?.parent_id || null);
     };
 
-    const getFileIcon = (type: string) => {
+    // Beautiful Icon System based on Type
+    const getFileVisuals = (type: string) => {
         switch (type) {
             case "pdf":
-                return <FileText className="w-8 h-8 text-red-500" />;
+                return {
+                    icon: <FileText className="w-8 h-8 text-rose-500" />,
+                    bg: "bg-gradient-to-br from-rose-500/10 to-rose-500/5 group-hover:from-rose-500/20 group-hover:to-rose-500/10",
+                    border: "group-hover:border-rose-500/30"
+                };
             case "document":
-                return <FileCode className="w-8 h-8 text-blue-500" />;
+                return {
+                    icon: <FileCode className="w-8 h-8 text-blue-500" />,
+                    bg: "bg-gradient-to-br from-blue-500/10 to-blue-500/5 group-hover:from-blue-500/20 group-hover:to-blue-500/10",
+                    border: "group-hover:border-blue-500/30"
+                };
             case "image":
-                return <ImageIcon className="w-8 h-8 text-green-500" />;
+                return {
+                    icon: <ImageIcon className="w-8 h-8 text-emerald-500" />,
+                    bg: "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 group-hover:from-emerald-500/20 group-hover:to-emerald-500/10",
+                    border: "group-hover:border-emerald-500/30"
+                };
             default:
-                return <File className="w-8 h-8 text-gray-500" />;
+                return {
+                    icon: <File className="w-8 h-8 text-slate-500" />,
+                    bg: "bg-gradient-to-br from-slate-500/10 to-slate-500/5 group-hover:from-slate-500/20 group-hover:to-slate-500/10",
+                    border: "group-hover:border-slate-500/30"
+                };
         }
     };
 
@@ -214,17 +231,17 @@ export default function DocumentsPage() {
             const hasChildren = node.children && node.children.length > 0;
 
             return (
-                <div key={node.id} style={{ paddingLeft: level === 0 ? 0 : '12px' }}>
-                    <div className="flex items-center gap-1 mb-1">
+                <div key={node.id} style={{ paddingLeft: level === 0 ? 0 : '14px' }}>
+                    <div className="flex items-center mb-1 group/item">
                         {hasChildren ? (
                             <button
                                 onClick={(e) => toggleFolderExpansion(node.id, e)}
-                                className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
+                                className="w-5 flex justify-center text-muted-foreground/60 hover:text-foreground transition-colors"
                             >
                                 {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4" />
+                                    <ChevronDown className="w-3.5 h-3.5" />
                                 ) : (
-                                    <ChevronRight className="w-4 h-4" />
+                                    <ChevronRight className="w-3.5 h-3.5" />
                                 )}
                             </button>
                         ) : (
@@ -234,19 +251,24 @@ export default function DocumentsPage() {
                         <button
                             onClick={() => handleFolderClick(node.id)}
                             className={cn(
-                                "flex-1 flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors",
+                                "flex-1 flex items-center gap-2.5 px-2.5 py-2 text-sm rounded-lg transition-all",
                                 selectedFolder === node.id
-                                    ? "bg-primary/10 text-primary font-medium"
-                                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                                    ? "bg-primary/10 text-primary font-medium shadow-sm shadow-primary/5 border border-primary/20"
+                                    : "hover:bg-muted/50 text-muted-foreground hover:text-foreground border border-transparent"
                             )}
                         >
                             <Folder className={cn(
-                                "w-4 h-4",
+                                "w-4 h-4 transition-transform group-hover/item:scale-110",
                                 selectedFolder === node.id ? "text-primary fill-primary/20" : "text-amber-500"
                             )} />
                             <span className="flex-1 text-left truncate">{node.name}</span>
                             {node.document_count > 0 && (
-                                <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground/70">
+                                <span className={cn(
+                                    "text-xs px-2 py-0.5 rounded-full font-medium shadow-sm",
+                                    selectedFolder === node.id
+                                        ? "bg-primary/20 text-primary"
+                                        : "bg-muted text-muted-foreground/70 group-hover/item:bg-background"
+                                )}>
                                     {node.document_count}
                                 </span>
                             )}
@@ -254,7 +276,7 @@ export default function DocumentsPage() {
                     </div>
 
                     {hasChildren && isExpanded && (
-                        <div className="border-l border-border/40 ml-2.5">
+                        <div className="border-l border-border/40 ml-2.5 mt-1 mb-2">
                             {renderFolderTree(node.children, level + 1)}
                         </div>
                     )}
@@ -264,68 +286,74 @@ export default function DocumentsPage() {
     };
 
     return (
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen bg-background/95 supports-[backdrop-filter]:bg-background/60">
             {/* Sidebar */}
-            <div className="w-64 border-r border-border bg-card/50 flex flex-col">
-                <div className="p-4 border-b border-border flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <Folder className="w-5 h-5 text-primary" />
+            <div className="w-72 border-r border-border/40 bg-card/40 backdrop-blur-3xl flex flex-col z-20">
+                <div className="h-16 border-b border-border/40 flex items-center gap-3 px-6 shadow-sm">
+                    <div className="w-9 h-9 bg-gradient-to-tr from-primary/30 to-primary/10 rounded-xl flex items-center justify-center border border-primary/20 shadow-inner">
+                        <Folder className="w-4 h-4 text-primary" />
                     </div>
-                    <span className="font-semibold">Файлы</span>
+                    <span className="font-bold text-lg tracking-tight">Документы</span>
                 </div>
 
-                <div className="p-3">
-                    <Button className="w-full justify-start gap-2" variant="outline">
-                        <Plus className="w-4 h-4" />
+                <div className="p-4">
+                    <Button className="w-full justify-start gap-2 h-10 shadow-sm border-dashed hover:border-solid hover:border-primary/50 transition-all font-medium" variant="outline">
+                        <Plus className="w-4 h-4 text-primary" />
                         Новая папка
                     </Button>
                 </div>
 
-                <ScrollArea className="flex-1 px-3">
-                    <div className="pb-4">
-                        <div className="mb-2 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <ScrollArea className="flex-1 px-4">
+                    <div className="pb-6">
+                        <div className="mb-3 px-2 text-xs font-bold text-muted-foreground/70 uppercase tracking-widest">
                             Папки
                         </div>
                         {renderFolderTree(folders)}
                     </div>
                 </ScrollArea>
 
-                <div className="p-4 border-t border-border">
-                    <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-                        <div className="flex justify-between mb-1">
-                            <span>Хранилище</span>
-                            <span>75%</span>
-                        </div>
-                        <div className="h-1.5 bg-border rounded-full overflow-hidden">
-                            <div className="h-full bg-primary w-3/4" />
+                <div className="p-4 border-t border-border/40 bg-muted/10">
+                    <div className="bg-card/50 backdrop-blur-sm border border-border/40 rounded-xl p-4 shadow-sm relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="relative z-10">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-semibold text-foreground/80">Хранилище</span>
+                                <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded-full text-muted-foreground">75%</span>
+                            </div>
+                            <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden border border-border/50">
+                                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 w-3/4 rounded-full relative">
+                                    <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground mt-2 font-medium">15 ГБ использовано из 20 ГБ</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-br from-background via-background to-muted/20 relative">
                 {/* Header */}
-                <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-card/50 backdrop-blur-sm z-10">
+                <div className="h-16 border-b border-border/40 flex items-center justify-between px-8 bg-card/60 backdrop-blur-2xl z-10 shadow-sm">
                     <div className="flex items-center gap-4 flex-1">
-                        <div className="relative w-96 max-w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <div className="relative w-[400px] max-w-full group/search">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60 group-focus-within/search:text-primary transition-colors" />
                             <Input
-                                placeholder="Поиск файлов..."
-                                className="pl-9 bg-background/50 border-input/50 focus:bg-background transition-all"
+                                placeholder="Поиск файлов или папок..."
+                                className="pl-9 h-10 bg-muted/30 border-border/50 focus-visible:ring-primary/30 focus-visible:border-primary/50 transition-all rounded-xl shadow-inner text-sm font-medium"
                                 value={searchQuery}
                                 onChange={(e) => handleSearch(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        <div className="flex bg-muted p-1 rounded-lg border border-border">
+                    <div className="flex items-center gap-4">
+                        <div className="flex bg-muted/40 p-1 rounded-lg border border-border/40 relative">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 title="Сетка"
-                                className={cn("h-7 w-7 p-0 rounded-md", viewMode === 'grid' && "bg-background shadow-sm")}
+                                className={cn("h-7 w-8 p-0 rounded-md transition-all z-10 text-muted-foreground hover:text-foreground", viewMode === 'grid' && "text-foreground shadow-sm")}
                                 onClick={() => setViewMode('grid')}
                             >
                                 <Grid className="w-4 h-4" />
@@ -334,88 +362,107 @@ export default function DocumentsPage() {
                                 variant="ghost"
                                 size="sm"
                                 title="Список"
-                                className={cn("h-7 w-7 p-0 rounded-md", viewMode === 'list' && "bg-background shadow-sm")}
+                                className={cn("h-7 w-8 p-0 rounded-md transition-all z-10 text-muted-foreground hover:text-foreground", viewMode === 'list' && "text-foreground shadow-sm")}
                                 onClick={() => setViewMode('list')}
                             >
                                 <List className="w-4 h-4" />
                             </Button>
+                            {/* Animated background pill for active state */}
+                            <div
+                                className={cn(
+                                    "absolute top-1 bottom-1 w-8 bg-background shadow-sm border border-border/40 rounded-md transition-transform duration-300 ease-out z-0",
+                                    viewMode === 'grid' ? "translate-x-0" : "translate-x-8"
+                                )}
+                            />
                         </div>
-                        <div className="h-6 w-px bg-border mx-2" />
-                        <Button className="gap-2 shadow-lg shadow-primary/20">
+                        <div className="h-6 w-px bg-border/60" />
+                        <Button className="h-9 gap-2 bg-gradient-to-b from-primary to-primary/80 hover:to-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 rounded-xl font-medium px-5">
                             <Upload className="w-4 h-4" />
                             Загрузить
                         </Button>
                     </div>
                 </div>
 
-                {/* Toolbar / Breadcrumbs */}
-                <div className="h-10 border-b border-border flex items-center px-6 bg-muted/20 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                {/* Breadcrumbs */}
+                <div className="h-12 border-b border-border/40 flex items-center px-8 bg-muted/10 text-sm backdrop-blur-md z-0">
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
                         {selectedFolder && (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 mr-1" onClick={handleNavigateUp}>
-                                <ArrowLeft className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="h-6 w-6 mr-1 rounded-md hover:bg-muted/60" onClick={handleNavigateUp}>
+                                <ArrowLeft className="w-3.5 h-3.5" />
                             </Button>
                         )}
-                        <Home
-                            className="w-4 h-4 hover:text-foreground cursor-pointer transition-colors"
+                        <button
+                            className="p-1 hover:bg-muted/50 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                             onClick={() => setSelectedFolder(null)}
-                        />
-                        <ChevronRight className="w-4 h-4 text-border" />
+                        >
+                            <Home className="w-4 h-4" />
+                        </button>
+                        <ChevronRight className="w-3.5 h-3.5 text-border opacity-60" />
                         {selectedFolder ? (
-                            <span className="font-medium text-foreground">
+                            <span className="font-semibold text-foreground/90 px-2 py-1 bg-background rounded-md shadow-sm border border-border/40">
                                 {findFolderById(folders, selectedFolder)?.name || '...'}
                             </span>
                         ) : (
-                            <span>Корневая папка</span>
+                            <span className="font-medium px-2 py-1">Корневая папка</span>
                         )}
                     </div>
                 </div>
 
                 {/* Files Area */}
-                <ScrollArea className="flex-1 bg-muted/10">
-                    <div className="p-6">
+                <ScrollArea className="flex-1">
+                    <div className="p-8">
                         {loading ? (
-                            <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse">
-                                Загрузка...
+                            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground animate-pulse gap-4">
+                                <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                <span className="font-medium text-sm">Загрузка данных...</span>
                             </div>
                         ) : documents.length === 0 && currentSubfolders.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-96 text-muted-foreground border-2 border-dashed border-border/50 rounded-xl bg-card/50">
-                                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                                    <Folder className="w-8 h-8 opacity-20" />
+                            <div className="flex flex-col items-center justify-center h-[28rem] text-muted-foreground mt-4 relative">
+                                {/* Decorative elements behind the empty state */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+                                    <div className="w-48 h-48 bg-amber-500/5 rounded-full blur-2xl absolute -ml-20 -mt-10" />
                                 </div>
-                                <h3 className="font-medium text-lg mb-1">Папка пуста</h3>
-                                <p className="text-sm max-w-xs text-center mb-6">
-                                    {selectedFolder ? "В этой папке нет файлов. Загрузите что-нибудь." : "Выберите папку слева или создайте новую."}
+                                <div className="relative w-24 h-24 mb-6 group">
+                                    <div className="absolute inset-0 bg-primary/10 rounded-3xl blur-xl transition-all duration-500 group-hover:bg-primary/20 group-hover:blur-2xl" />
+                                    <div className="relative flex items-center justify-center w-full h-full bg-card border border-border/50 rounded-3xl shadow-xl shadow-primary/5 transition-transform duration-500 group-hover:scale-105">
+                                        <Folder className="w-10 h-10 text-muted-foreground/40" />
+                                    </div>
+                                </div>
+                                <h3 className="font-bold text-xl mb-2 text-foreground/90 tracking-tight">Папка пуста</h3>
+                                <p className="text-sm max-w-sm text-center mb-8 text-muted-foreground/80 leading-relaxed">
+                                    {selectedFolder ? "В этой папке пока нет файлов." : "Выберите папку слева или создайте новую."}
+                                    <br />Перетащите файлы сюда или нажмите кнопку ниже.
                                 </p>
                                 {selectedFolder && (
-                                    <Button variant="outline" className="gap-2">
+                                    <Button className="gap-2 h-10 px-6 rounded-xl shadow-md" variant="secondary">
                                         <Upload className="w-4 h-4" />
                                         Загрузить файл
                                     </Button>
                                 )}
                             </div>
                         ) : viewMode === 'grid' ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                                 {/* Render Subfolders */}
                                 {currentSubfolders.map((folder) => (
                                     <Card
                                         key={`folder-${folder.id}`}
-                                        className="group relative overflow-hidden transition-all hover:shadow-md hover:border-primary/50 cursor-pointer bg-card border-border/50"
+                                        className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-primary/5 hover:border-amber-500/30 cursor-pointer bg-card/60 backdrop-blur-sm border-border/40 rounded-xl"
                                         onClick={() => handleFolderClick(folder.id)}
                                         onDoubleClick={() => handleFolderClick(folder.id)}
                                     >
-                                        <div className="aspect-[4/3] bg-amber-500/5 flex items-center justify-center group-hover:bg-amber-500/10 transition-colors">
-                                            <Folder className="w-12 h-12 text-amber-500 fill-amber-500/20" />
+                                        <div className="aspect-[4/3] bg-gradient-to-br from-amber-500/10 to-amber-500/5 flex items-center justify-center group-hover:from-amber-500/20 group-hover:to-amber-500/10 transition-colors">
+                                            <Folder className="w-14 h-14 text-amber-500 fill-amber-500/20 group-hover:scale-110 transition-transform duration-300" />
                                         </div>
-                                        <div className="p-3">
+                                        <div className="p-4 bg-card/50">
                                             <div className="flex items-start justify-between gap-2 mb-1">
-                                                <p className="font-medium text-sm truncate w-full" title={folder.name}>
+                                                <p className="font-semibold text-sm truncate w-full tracking-tight" title={folder.name}>
                                                     {folder.name}
                                                 </p>
                                             </div>
-                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                            <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
                                                 <span>Папка</span>
-                                                <span>{folder.document_count} файлов</span>
+                                                <span className="bg-muted px-2 py-0.5 rounded-full">{folder.document_count}</span>
                                             </div>
                                         </div>
                                         {/* Hover Actions for Folder */}
@@ -423,163 +470,200 @@ export default function DocumentsPage() {
                                             <Button
                                                 size="icon"
                                                 variant="secondary"
-                                                className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                                                className="h-8 w-8 rounded-lg shadow-sm border border-border/50 backdrop-blur-md bg-background/80 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive/30 transition-all text-muted-foreground"
                                                 title="Удалить папку"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDeleteFolder(folder.id);
                                                 }}
                                             >
-                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <Trash2 className="w-4 h-4" />
                                             </Button>
                                         </div>
                                     </Card>
                                 ))}
 
                                 {/* Render Documents */}
-                                {documents.map((doc) => (
-                                    <Card key={`doc-${doc.id}`} className="group relative overflow-hidden transition-all hover:shadow-md hover:border-primary/50 cursor-pointer bg-card border-border/50">
-                                        <div className="aspect-[4/3] bg-gradient-to-br from-muted/50 to-muted flex items-center justify-center relative group-hover:from-primary/5 group-hover:to-primary/10 transition-colors">
-                                            {getFileIcon(doc.document_type)}
-                                            {doc.is_indexed && (
-                                                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-green-500 ring-2 ring-background" title="Проиндексировано" />
+                                {documents.map((doc) => {
+                                    const visual = getFileVisuals(doc.document_type);
+                                    return (
+                                        <Card
+                                            key={`doc-${doc.id}`}
+                                            className={cn(
+                                                "group relative overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl cursor-pointer bg-card/60 backdrop-blur-sm border-border/40 rounded-xl",
+                                                visual.border
                                             )}
-                                        </div>
-                                        <div className="p-3">
-                                            <div className="flex items-start justify-between gap-2 mb-1">
-                                                <p className="font-medium text-sm truncate w-full" title={doc.original_filename}>
-                                                    {doc.original_filename}
-                                                </p>
+                                        >
+                                            <div className={cn("aspect-[4/3] flex items-center justify-center relative transition-colors", visual.bg)}>
+                                                <div className="group-hover:scale-110 transition-transform duration-300">
+                                                    {visual.icon}
+                                                </div>
+                                                {doc.is_indexed && (
+                                                    <div className="absolute top-3 left-3 w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] ring-2 ring-background/50" title="Проиндексировано" />
+                                                )}
                                             </div>
-                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                <span>{formatFileSize(doc.file_size)}</span>
-                                                <span>{new Date(doc.created_at).toLocaleDateString("ru-RU")}</span>
+                                            <div className="p-4 bg-card/50">
+                                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                                    <p className="font-semibold text-sm truncate w-full tracking-tight" title={doc.original_filename}>
+                                                        {doc.original_filename}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
+                                                    <span>{formatFileSize(doc.file_size)}</span>
+                                                    <span>{new Date(doc.created_at).toLocaleDateString("ru-RU", { day: 'numeric', month: 'short' })}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        {/* Hover Actions */}
-                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                                            <Button size="icon" variant="secondary" className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-background" title="Скачать">
-                                                <Download className="w-3.5 h-3.5" />
-                                            </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="secondary"
-                                                className="h-7 w-7 rounded-sm shadow-sm backdrop-blur-sm bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
-                                                title="Удалить"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteDocument(doc.id);
-                                                }}
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </Button>
-                                        </div>
-                                    </Card>
-                                ))}
+                                            {/* Hover Actions */}
+                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1.5">
+                                                <Button size="icon" variant="secondary" className="h-8 w-8 rounded-lg shadow-sm border border-border/50 backdrop-blur-md bg-background/80 hover:bg-background hover:text-primary transition-all text-muted-foreground" title="Скачать">
+                                                    <Download className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon"
+                                                    variant="secondary"
+                                                    className="h-8 w-8 rounded-lg shadow-sm border border-border/50 backdrop-blur-md bg-background/80 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive/30 transition-all text-muted-foreground"
+                                                    title="Удалить"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteDocument(doc.id);
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         ) : (
-                            <Card className="overflow-hidden border-border/50 bg-card">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-muted-foreground bg-muted/50 uppercase font-medium">
+                            <div className="rounded-xl border border-border/40 bg-card/50 backdrop-blur-md overflow-hidden shadow-sm">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="text-xs text-muted-foreground bg-muted/30 uppercase font-semibold">
                                         <tr>
-                                            <th className="px-4 py-3 pl-6 w-12">Тип</th>
-                                            <th className="px-4 py-3">Имя</th>
-                                            <th className="px-4 py-3">Размер</th>
-                                            <th className="px-4 py-3">Дата</th>
-                                            <th className="px-4 py-3 text-right">Действия</th>
+                                            <th className="px-6 py-4 w-14"></th>
+                                            <th className="px-4 py-4">Имя</th>
+                                            <th className="px-4 py-4 w-32">Размер</th>
+                                            <th className="px-4 py-4 w-40">Дата загрузки</th>
+                                            <th className="px-6 py-4 text-right w-24">Действия</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-border/50">
+                                    <tbody className="divide-y divide-border/30">
                                         {/* Render Subfolders List */}
                                         {currentSubfolders.map((folder) => (
                                             <tr
                                                 key={`folder-${folder.id}`}
-                                                className="hover:bg-muted/30 transition-colors group cursor-pointer"
+                                                className="hover:bg-muted/40 transition-colors group cursor-pointer"
                                                 onClick={() => handleFolderClick(folder.id)}
                                             >
-                                                <td className="px-4 py-3 pl-6">
-                                                    <Folder className="w-5 h-5 text-amber-500 fill-amber-500/20" />
+                                                <td className="px-6 py-4">
+                                                    <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                                                        <Folder className="w-5 h-5 text-amber-500 fill-amber-500/20" />
+                                                    </div>
                                                 </td>
-                                                <td className="px-4 py-3 font-medium text-foreground">
+                                                <td className="px-4 py-4 font-semibold text-foreground tracking-tight">
                                                     {folder.name}
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
+                                                <td className="px-4 py-4 text-muted-foreground font-medium">
+                                                    {folder.document_count > 0 ? `${folder.document_count} элем.` : 'Пусто'}
+                                                </td>
+                                                <td className="px-4 py-4 text-muted-foreground font-medium">
                                                     -
                                                 </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    -
-                                                </td>
-                                                <td className="px-4 py-3 text-right flex justify-end gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            // Navigate to folder
-                                                            handleFolderClick(folder.id);
-                                                        }}
-                                                    >
-                                                        <ChevronRight className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        title="Удалить папку"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteFolder(folder.id);
-                                                        }}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleFolderClick(folder.id);
+                                                            }}
+                                                        >
+                                                            <ChevronRight className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                                            title="Удалить папку"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteFolder(folder.id);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
 
                                         {/* Render Documents List */}
-                                        {documents.map((doc) => (
-                                            <tr key={`doc-${doc.id}`} className="hover:bg-muted/30 transition-colors group">
-                                                <td className="px-4 py-3 pl-6">
-                                                    {getFileIcon(doc.document_type)}
-                                                </td>
-                                                <td className="px-4 py-3 font-medium text-foreground">
-                                                    {doc.original_filename}
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {formatFileSize(doc.file_size)}
-                                                </td>
-                                                <td className="px-4 py-3 text-muted-foreground">
-                                                    {new Date(doc.created_at).toLocaleDateString("ru-RU")}
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                        title="Удалить"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleDeleteDocument(doc.id);
-                                                        }}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {documents.map((doc) => {
+                                            const visual = getFileVisuals(doc.document_type);
+                                            return (
+                                                <tr key={`doc-${doc.id}`} className="hover:bg-muted/40 transition-colors group">
+                                                    <td className="px-6 py-4">
+                                                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", visual.bg.split(' ')[0])}>
+                                                            {visual.icon}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-4">
+                                                        <span className="font-semibold text-foreground tracking-tight flex items-center gap-2">
+                                                            {doc.original_filename}
+                                                            {doc.is_indexed && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" title="Проиндексировано" />
+                                                            )}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-4 text-muted-foreground font-medium">
+                                                        {formatFileSize(doc.file_size)}
+                                                    </td>
+                                                    <td className="px-4 py-4 text-muted-foreground font-medium">
+                                                        {new Date(doc.created_at).toLocaleDateString("ru-RU", { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg"
+                                                                title="Скачать"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                                                title="Удалить"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleDeleteDocument(doc.id);
+                                                                }}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
-                            </Card>
+                            </div>
                         )}
                     </div>
                 </ScrollArea>
 
                 {/* Status Bar */}
-                <div className="h-8 border-t border-border bg-card flex items-center px-4 text-xs text-muted-foreground justify-between">
-                    <span>{documents.length + currentSubfolders.length} элементов</span>
-                    <span>Синхронизировано</span>
+                <div className="h-8 border-t border-border/40 bg-card/40 backdrop-blur-md flex items-center px-6 text-xs text-muted-foreground justify-between font-medium z-10">
+                    <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                        {documents.length + currentSubfolders.length} элементов
+                    </span>
+                    <span>Синхронизировано • Последнее обновление только что</span>
                 </div>
             </div>
         </div>

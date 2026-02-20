@@ -241,8 +241,21 @@ async def process_message(user_id: int, message: str, context: dict = None) -> s
     Returns:
         AI assistant's response
     """
+    # Format chat history from context if available
+    context_msgs = context.get("chat_history", [])
+    history_messages = []
+    
+    for msg in context_msgs:
+        if msg.get("role") == "user":
+            history_messages.append(HumanMessage(content=msg.get("content")))
+        elif msg.get("role") == "assistant":
+            history_messages.append(AIMessage(content=msg.get("content")))
+            
+    # Combine history with new message
+    all_messages = history_messages + [HumanMessage(content=message)]
+
     initial_state = {
-        "messages": [HumanMessage(content=message)],
+        "messages": all_messages,
         "user_id": user_id,
         "intent": None,
         "context": context or {},

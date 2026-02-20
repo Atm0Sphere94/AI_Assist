@@ -36,30 +36,53 @@ export const useAuthStore = create<AuthState>()(
 );
 
 interface Message {
-    id: string;
-    role: "user" | "assistant";
+    id: string; // Used for local rendering keys
+    db_id?: number; // Real ID from DB if loaded from history
+    role: "user" | "assistant" | "system";
     content: string;
     timestamp: Date;
 }
 
+interface ChatSessionClient {
+    id: number;
+    title: string;
+    updatedAt: Date;
+}
+
 interface ChatState {
     messages: Message[];
+    sessions: ChatSessionClient[];
+    currentSessionId: number | null;
+
+    // Actions
     addMessage: (message: Omit<Message, "id" | "timestamp">) => void;
+    setMessages: (messages: Message[]) => void;
     clearMessages: () => void;
+
+    setSessions: (sessions: ChatSessionClient[]) => void;
+    setCurrentSession: (id: number | null) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
     messages: [],
+    sessions: [],
+    currentSessionId: null,
+
     addMessage: (message) =>
         set((state) => ({
             messages: [
                 ...state.messages,
                 {
                     ...message,
-                    id: Date.now().toString(),
+                    id: Date.now().toString() + Math.random().toString(),
                     timestamp: new Date(),
                 },
             ],
         })),
-    clearMessages: () => set({ messages: [] }),
+
+    setMessages: (messages) => set({ messages }),
+    clearMessages: () => set({ messages: [], currentSessionId: null }),
+
+    setSessions: (sessions) => set({ sessions }),
+    setCurrentSession: (id) => set({ currentSessionId: id }),
 }));

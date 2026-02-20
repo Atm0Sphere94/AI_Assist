@@ -42,6 +42,7 @@ class User(Base):
     reminders = relationship("Reminder", back_populates="user", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
     folders = relationship("Folder", back_populates="user", cascade="all, delete-orphan")
+    chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
     conversations = relationship("ConversationHistory", back_populates="user", cascade="all, delete-orphan")
 
 
@@ -182,12 +183,28 @@ class KnowledgeBase(Base):
     document = relationship("Document", back_populates="knowledge_entries")
 
 
+class ChatSession(Base):
+    """Chat sessions for organizing conversation history."""
+    __tablename__ = "chat_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(500), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="chat_sessions")
+    messages = relationship("ConversationHistory", back_populates="session", cascade="all, delete-orphan", order_by="ConversationHistory.created_at")
+
+
 class ConversationHistory(Base):
     """Conversation history with the bot."""
     __tablename__ = "conversation_history"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=True, index=True)
     role = Column(String(20), nullable=False)  # user, assistant, system
     content = Column(Text, nullable=False)
     meta_data = Column(JSON, nullable=True)  # Renamed from metadata (SQLAlchemy reserved)
@@ -195,3 +212,4 @@ class ConversationHistory(Base):
     
     # Relationships
     user = relationship("User", back_populates="conversations")
+    session = relationship("ChatSession", back_populates="messages")

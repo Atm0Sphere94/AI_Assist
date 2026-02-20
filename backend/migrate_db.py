@@ -34,6 +34,24 @@ async def migrate():
             await session.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSON DEFAULT '{}'::json;"))
         except Exception as e:
             print(f"Notice (users settings): {e}")
+
+        # 4. Create chat_sessions table and alter conversation_history
+        print("Creating chat_sessions table and updating conversation_history...")
+        try:
+            await session.execute(text("""
+                CREATE TABLE IF NOT EXISTS chat_sessions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id),
+                    title VARCHAR(500) NOT NULL,
+                    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc'),
+                    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (now() at time zone 'utc')
+                );
+            """))
+            await session.execute(text("ALTER TABLE conversation_history ADD COLUMN IF NOT EXISTS session_id INTEGER REFERENCES chat_sessions(id);"))
+            await session.execute(text("CREATE INDEX IF NOT EXISTS ix_conversation_history_session_id ON conversation_history(session_id);"))
+            await session.execute(text("CREATE INDEX IF NOT EXISTS ix_chat_sessions_id ON chat_sessions(id);"))
+        except Exception as e:
+            print(f"Notice (chat sessions): {e}")
             
         await session.commit()
         print("Migration complete.")
