@@ -44,6 +44,7 @@ from .reminder_agent import reminder_agent_node
 from .image_agent import image_agent_node
 from .document_agent import document_agent_node
 from .rag_agent import rag_agent_node
+from .search_agent import search_agent_node
 
 # Router Node (Sync wrapper logic)
 async def router_node(state: AgentState) -> AgentState:
@@ -74,12 +75,15 @@ async def router_node(state: AgentState) -> AgentState:
 - image: если пользователь просит нарисовать, сгенерировать, создать изображение/картинку
 - document: если пользователь загружает документ или просит обработать файл
 - knowledge: если пользователь задаёт вопрос, требующий поиска в базе знаний или документах
+- search: если пользователь просит найти актуальную информацию в интернете, новости, поискать ссылки на товары, цены на билеты
 - general: обычная беседа, приветствие, или неясное намерение
 
 Примеры:
 "Создай задачу купить молоко" -> task
 "Добавь встречу завтра в 15:00" -> calendar
-"Напомни мне через час" -> reminder
+"Найти дешевые авиабилеты в Дубай" -> search
+"Какие сегодня новости в мире ИТ?" -> search
+"Что такое LangChain?" -> search
 "Нарисуй кота" -> image
 "Что ты знаешь о Python?" -> knowledge
 "Привет, как дела?" -> general
@@ -172,6 +176,7 @@ def route_to_agent(state: AgentState) -> str:
         "image": "image_agent",
         "document": "document_agent",
         "knowledge": "rag_agent",
+        "search": "search_agent",
         "general": "general_response",
     }
     
@@ -194,6 +199,7 @@ def build_workflow() -> StateGraph:
     workflow.add_node("image_agent", image_agent_node)
     workflow.add_node("document_agent", document_agent_node)
     workflow.add_node("rag_agent", rag_agent_node)
+    workflow.add_node("search_agent", search_agent_node)
     
     # Set entry point
     workflow.set_entry_point("router")
@@ -209,6 +215,7 @@ def build_workflow() -> StateGraph:
             "image_agent": "image_agent",
             "document_agent": "document_agent",
             "rag_agent": "rag_agent",
+            "search_agent": "search_agent",
             "general_response": "general_response",
         }
     )
@@ -220,6 +227,7 @@ def build_workflow() -> StateGraph:
     workflow.set_finish_point("image_agent")
     workflow.set_finish_point("document_agent")
     workflow.set_finish_point("rag_agent")
+    workflow.set_finish_point("search_agent")
     workflow.set_finish_point("general_response")
     
     # Compile the workflow
