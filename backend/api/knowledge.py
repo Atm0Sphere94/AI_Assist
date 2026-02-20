@@ -27,7 +27,7 @@ async def search_knowledge_base(
     Search the knowledge base for relevant document chunks.
     """
     rag_service = RAGService(db)
-    results = await rag_service.search(
+    results = rag_service.search(
         query=q,
         user_id=current_user.id,
         limit=limit

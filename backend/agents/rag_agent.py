@@ -17,7 +17,7 @@ async def rag_agent_node(state: AgentState) -> AgentState:
             
             # 1. Search in RAG
             rag_service = RAGService(session)
-            search_results = await rag_service.search(query, user_id=user.id, limit=5)
+            search_results = rag_service.search(query, user_id=user.id, limit=5)
             
             if not search_results:
                 return {
