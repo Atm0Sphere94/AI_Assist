@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
+from datetime import datetime
 
 from sqlalchemy import select, desc
 from db import get_db
@@ -132,7 +133,7 @@ async def send_message(
             raise HTTPException(status_code=404, detail="Session not found")
             
         # Update session updated_at
-        session.updated_at = db.execute(select(db.func.now())).scalar()
+        session.updated_at = datetime.utcnow()
 
     # Save user message
     user_message = ConversationHistory(
