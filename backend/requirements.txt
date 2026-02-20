@@ -67,4 +67,4 @@ python-dateutil==2.8.2
 
 # Note: Testing and development dependencies moved to requirements-dev.txt
 # Use pip install -r requirements-dev.txt for local development
-duckduckgo-search==5.3.1
+duckduckgo-search>=6.1.7
